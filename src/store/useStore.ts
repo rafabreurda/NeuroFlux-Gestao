@@ -130,7 +130,7 @@ export function useCustos() {
 export function useEmpresaConfig() {
   const [config, setConfig] = useState<EmpresaConfig>(() =>
     loadFromStorage('empresaConfig', {
-      nome: '', cnpj: '', endereco: '', telefone: '', email: '', logo: null,
+      nome: '', cnpj: '', endereco: '', telefone: '', email: '', logo: null, assinatura: null,
     })
   );
 

@@ -27,6 +27,8 @@ export interface Orcamento {
   clienteId: string;
   clienteNome: string;
   itens: OrcamentoItem[];
+  materiais: OrcamentoMaterial[];
+  maoDeObra: number;
   validade: string;
   observacoes: string;
   status: 'pendente' | 'aprovado' | 'recusado';
@@ -38,6 +40,11 @@ export interface OrcamentoItem {
   descricao: string;
   quantidade: number;
   valorUnitario: number;
+}
+
+export interface OrcamentoMaterial {
+  nome: string;
+  valor: number;
 }
 
 export interface Recibo {
@@ -64,4 +71,5 @@ export interface EmpresaConfig {
   telefone: string;
   email: string;
   logo: string | null;
+  assinatura: string | null;
 }
