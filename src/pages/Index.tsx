@@ -72,7 +72,7 @@ const Index = () => {
         <ClientesModule clientes={clientes} addCliente={addCliente} removeCliente={removeCliente} ordens={ordens} orcamentos={orcamentos} />
       )}
       {activeModule === 'orcamentos' && (
-        <OrcamentosModule orcamentos={orcamentos} addOrcamento={addOrcamento} updateOrcamento={updateOrcamento} empresaLogo={config.logo} empresaNome={config.nome} />
+        <OrcamentosModule orcamentos={orcamentos} addOrcamento={addOrcamento} updateOrcamento={updateOrcamento} empresaLogo={config.logo} empresaNome={config.nome} empresaAssinatura={config.assinatura} />
       )}
       {activeModule === 'faturamento' && (
         <FaturamentoModule recibos={recibos} addRecibo={addRecibo} empresaLogo={config.logo} empresaNome={config.nome} />
