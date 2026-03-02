@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
-  Wrench, FileText, Users, DollarSign, Settings, Menu, X, Camera, Receipt, ChevronRight
+  Wrench, FileText, Users, DollarSign, Settings, Menu, X, Camera, Receipt, ChevronRight, Home, Handshake
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-type ModuleKey = 'servicos' | 'orcamentos' | 'clientes' | 'faturamento' | 'custos' | 'config';
+type ModuleKey = 'home' | 'servicos' | 'orcamentos' | 'clientes' | 'faturamento' | 'custos' | 'config';
 
 interface Props {
   activeModule: ModuleKey;
@@ -14,11 +14,12 @@ interface Props {
 }
 
 const modules: { key: ModuleKey; label: string; icon: React.ReactNode }[] = [
+  { key: 'home', label: 'Início', icon: <Home className="h-5 w-5" /> },
+  { key: 'clientes', label: 'Clientes', icon: <Users className="h-5 w-5" /> },
   { key: 'servicos', label: 'Serviços e OS', icon: <Wrench className="h-5 w-5" /> },
   { key: 'orcamentos', label: 'Orçamentos', icon: <FileText className="h-5 w-5" /> },
-  { key: 'clientes', label: 'Clientes', icon: <Users className="h-5 w-5" /> },
-  { key: 'faturamento', label: 'Faturamento', icon: <Receipt className="h-5 w-5" /> },
-  { key: 'custos', label: 'Custos e Parcerias', icon: <DollarSign className="h-5 w-5" /> },
+  { key: 'custos', label: 'Parceiros e Custos', icon: <Handshake className="h-5 w-5" /> },
+  { key: 'faturamento', label: 'Financeiro', icon: <Receipt className="h-5 w-5" /> },
   { key: 'config', label: 'Configurações', icon: <Settings className="h-5 w-5" /> },
 ];
 
