@@ -24,9 +24,9 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
       },
       manifest: {
-        name: "Pro Gestão",
-        short_name: "ProGestão",
-        description: "Sistema de gestão profissional para serviços",
+        name: "NeuroFlux Gestão",
+        short_name: "NeuroFlux",
+        description: "Sistema inteligente de gestão para serviços, clientes e orçamentos",
         theme_color: "#2563eb",
         background_color: "#f5f7fa",
         display: "standalone",
