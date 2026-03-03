@@ -47,21 +47,21 @@ const Index = ({ user, signOut }: Props) => {
           <h1 className="text-2xl font-bold text-foreground">Pro Gestão</h1>
           <p className="text-sm text-muted-foreground">Olá, {profile?.nome || user?.email || 'Usuário'}</p>
         </div>
-        <div className="mx-auto grid w-full max-w-lg grid-cols-2 gap-4 px-4 pb-10 sm:grid-cols-3">
+        <div className="mx-auto grid w-full max-w-lg grid-cols-2 gap-3 px-4 pb-24 sm:grid-cols-3 sm:gap-4">
           {menuItems.map(item => (
             <button
               key={item.key}
               onClick={() => setActiveModule(item.key)}
-              className={`group flex flex-col items-center justify-center gap-3 rounded-2xl bg-gradient-to-br ${item.color} p-6 text-white shadow-lg transition-all duration-200 active:scale-95 hover:scale-105 hover:shadow-xl`}
+              className={`group flex flex-col items-center justify-center gap-2 rounded-2xl bg-gradient-to-br ${item.color} p-4 text-white shadow-lg transition-all duration-200 active:scale-95 hover:scale-105 hover:shadow-xl sm:gap-3 sm:p-6`}
               style={{ boxShadow: '0 6px 0 rgba(0,0,0,0.25), 0 8px 20px rgba(0,0,0,0.15)' }}
             >
               {item.icon}
-              <span className="text-sm font-bold">{item.label}</span>
+              <span className="text-xs font-bold sm:text-sm">{item.label}</span>
             </button>
           ))}
         </div>
         <div className="mt-auto flex flex-col items-center gap-2 pb-4">
-          <button onClick={signOut} className="text-sm text-destructive underline">Sair da conta</button>
+          {user && <button onClick={signOut} className="text-sm text-destructive underline">Sair da conta</button>}
           <p className="text-xs text-muted-foreground">v1.0 — Pro Gestão © 2026</p>
         </div>
       </div>
