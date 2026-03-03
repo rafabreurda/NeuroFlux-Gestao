@@ -81,6 +81,9 @@ export default function AppLayout({ activeModule, onModuleChange, children, sign
       {/* Main */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-14 items-center gap-3 border-b bg-card px-4 lg:px-6">
+          <Button variant="ghost" size="icon" onClick={() => onModuleChange('home')} className="shrink-0">
+            <Home className="h-5 w-5" />
+          </Button>
           <h2 className="text-lg font-semibold">
             {modules.find(m => m.key === activeModule)?.label}
           </h2>
