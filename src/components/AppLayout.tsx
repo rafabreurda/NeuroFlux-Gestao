@@ -11,6 +11,8 @@ interface Props {
   activeModule: ModuleKey;
   onModuleChange: (m: ModuleKey) => void;
   children: React.ReactNode;
+  signOut?: () => Promise<void>;
+  userName?: string;
 }
 
 const modules: { key: ModuleKey; label: string; icon: React.ReactNode }[] = [
@@ -23,7 +25,7 @@ const modules: { key: ModuleKey; label: string; icon: React.ReactNode }[] = [
   { key: 'config', label: 'Configurações', icon: <Settings className="h-5 w-5" /> },
 ];
 
-export default function AppLayout({ activeModule, onModuleChange, children }: Props) {
+export default function AppLayout({ activeModule, onModuleChange, children, signOut, userName }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -70,7 +72,11 @@ export default function AppLayout({ activeModule, onModuleChange, children }: Pr
           ))}
         </nav>
 
-        <div className="border-t border-sidebar-border p-4">
+        <div className="border-t border-sidebar-border p-4 space-y-2">
+          {userName && <p className="text-xs text-sidebar-foreground/70 truncate">{userName}</p>}
+          {signOut && (
+            <button onClick={signOut} className="text-xs text-red-400 hover:underline">Sair da conta</button>
+          )}
           <p className="text-[11px] text-sidebar-foreground/50">v1.0 — Pro Gestão © 2026</p>
         </div>
       </aside>

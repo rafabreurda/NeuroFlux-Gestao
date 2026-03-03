@@ -1,15 +1,25 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { EmpresaConfig } from '@/types';
+import { Profile } from '@/hooks/useProfile';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Settings, Upload, Trash2, PenTool } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Settings, Upload, Trash2, PenTool, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Props {
   config: EmpresaConfig;
   updateConfig: (updates: Partial<EmpresaConfig>) => void;
+  profile: Profile | null;
+  updateProfile: (updates: Partial<Profile>) => Promise<void>;
 }
+
+const ESTADOS_BR = [
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
+  'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'
+];
 
 function SignaturePad({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -68,7 +78,6 @@ function SignaturePad({ value, onChange }: { value: string | null; onChange: (v:
     toast.success('Assinatura salva!');
   };
 
-  // Load existing signature
   useEffect(() => {
     if (value && canvasRef.current) {
       const img = new Image();
@@ -87,17 +96,10 @@ function SignaturePad({ value, onChange }: { value: string | null; onChange: (v:
   return (
     <div className="space-y-3">
       <canvas
-        ref={canvasRef}
-        width={400}
-        height={150}
+        ref={canvasRef} width={400} height={150}
         className="w-full rounded-lg border-2 border-dashed bg-white touch-none cursor-crosshair"
-        onMouseDown={startDraw}
-        onMouseMove={draw}
-        onMouseUp={endDraw}
-        onMouseLeave={endDraw}
-        onTouchStart={startDraw}
-        onTouchMove={draw}
-        onTouchEnd={endDraw}
+        onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
+        onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}
       />
       <div className="flex gap-2">
         <Button size="sm" onClick={save} disabled={!hasDrawn}>
@@ -111,8 +113,35 @@ function SignaturePad({ value, onChange }: { value: string | null; onChange: (v:
   );
 }
 
-export default function ConfigModule({ config, updateConfig }: Props) {
+export default function ConfigModule({ config, updateConfig, profile, updateProfile }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [profileForm, setProfileForm] = useState({
+    nome: '', cpf: '', cnpj: '', telefone: '', data_nascimento: '',
+    endereco: '', bairro: '', cidade: '', estado: '', empresa: '',
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({
+        nome: profile.nome || '',
+        cpf: profile.cpf || '',
+        cnpj: profile.cnpj || '',
+        telefone: profile.telefone || '',
+        data_nascimento: profile.data_nascimento || '',
+        endereco: profile.endereco || '',
+        bairro: profile.bairro || '',
+        cidade: profile.cidade || '',
+        estado: profile.estado || '',
+        empresa: profile.empresa || '',
+      });
+    }
+  }, [profile]);
+
+  const set = (key: string, val: string) => setProfileForm(prev => ({ ...prev, [key]: val }));
+
+  const saveProfile = async () => {
+    await updateProfile(profileForm);
+  };
 
   const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -127,83 +156,155 @@ export default function ConfigModule({ config, updateConfig }: Props) {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5 text-primary" /> Dados da Empresa</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Nome da Empresa</label>
-            <Input value={config.nome} onChange={e => updateConfig({ nome: e.target.value })} placeholder="Minha Empresa Ltda" />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">CNPJ</label>
-            <Input value={config.cnpj} onChange={e => updateConfig({ cnpj: e.target.value })} placeholder="00.000.000/0001-00" />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Endereço</label>
-            <Input value={config.endereco} onChange={e => updateConfig({ endereco: e.target.value })} placeholder="Rua, número, cidade - UF" />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium">Telefone</label>
-              <Input value={config.telefone} onChange={e => updateConfig({ telefone: e.target.value })} placeholder="(00) 00000-0000" />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">E-mail</label>
-              <Input value={config.email} onChange={e => updateConfig({ email: e.target.value })} placeholder="contato@empresa.com" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="perfil">
+        <TabsList className="w-full">
+          <TabsTrigger value="perfil" className="flex-1"><User className="mr-1 h-4 w-4" /> Meu Perfil</TabsTrigger>
+          <TabsTrigger value="empresa" className="flex-1"><Settings className="mr-1 h-4 w-4" /> Empresa</TabsTrigger>
+          <TabsTrigger value="assinatura" className="flex-1"><PenTool className="mr-1 h-4 w-4" /> Assinatura</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5 text-primary" /> Logomarca</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-3 text-sm text-muted-foreground">
-            A logo será incluída em recibos, orçamentos e notas fiscais.
-          </p>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogo} />
-
-          {config.logo ? (
-            <div className="flex items-start gap-4">
-              <img src={config.logo} alt="Logo" className="h-20 rounded-lg border object-contain" />
-              <div className="space-y-2">
-                <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
-                  <Upload className="h-4 w-4" /> Trocar
-                </Button>
-                <Button size="sm" variant="ghost" className="text-destructive" onClick={() => updateConfig({ logo: null })}>
-                  <Trash2 className="h-4 w-4" /> Remover
-                </Button>
+        <TabsContent value="perfil" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><User className="h-5 w-5 text-primary" /> Dados Pessoais</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Nome Completo</Label>
+                <Input value={profileForm.nome} onChange={e => set('nome', e.target.value)} placeholder="Seu nome completo" />
               </div>
-            </div>
-          ) : (
-            <Button variant="outline" onClick={() => fileRef.current?.click()}>
-              <Upload className="h-4 w-4" /> Enviar Logo
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <Label>CPF</Label>
+                  <Input value={profileForm.cpf} onChange={e => set('cpf', e.target.value)} placeholder="000.000.000-00" />
+                </div>
+                <div>
+                  <Label>Data de Nascimento</Label>
+                  <Input type="date" value={profileForm.data_nascimento} onChange={e => set('data_nascimento', e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <Label>Telefone</Label>
+                  <Input value={profileForm.telefone} onChange={e => set('telefone', e.target.value)} placeholder="(00) 00000-0000" />
+                </div>
+                <div>
+                  <Label>Empresa</Label>
+                  <Input value={profileForm.empresa} onChange={e => set('empresa', e.target.value)} placeholder="Nome da empresa" />
+                </div>
+              </div>
+              <div>
+                <Label>CNPJ</Label>
+                <Input value={profileForm.cnpj} onChange={e => set('cnpj', e.target.value)} placeholder="00.000.000/0001-00" />
+              </div>
+              <div>
+                <Label>Endereço</Label>
+                <Input value={profileForm.endereco} onChange={e => set('endereco', e.target.value)} placeholder="Rua, número, complemento" />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                  <Label>Bairro</Label>
+                  <Input value={profileForm.bairro} onChange={e => set('bairro', e.target.value)} placeholder="Bairro" />
+                </div>
+                <div>
+                  <Label>Cidade</Label>
+                  <Input value={profileForm.cidade} onChange={e => set('cidade', e.target.value)} placeholder="Cidade" />
+                </div>
+                <div>
+                  <Label>Estado</Label>
+                  <select
+                    value={profileForm.estado}
+                    onChange={e => set('estado', e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">UF</option>
+                    {ESTADOS_BR.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                  </select>
+                </div>
+              </div>
+              <Button onClick={saveProfile} className="w-full">Salvar Perfil</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><PenTool className="h-5 w-5 text-primary" /> Assinatura do Responsável</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-3 text-sm text-muted-foreground">
-            Desenhe sua assinatura abaixo. Ela aparecerá nos orçamentos e documentos como "Assinatura do Trabalhador".
-          </p>
-          {config.assinatura && (
-            <div className="mb-3 rounded-lg border bg-muted/30 p-2">
-              <p className="mb-1 text-xs font-medium text-muted-foreground">Assinatura atual:</p>
-              <img src={config.assinatura} alt="Assinatura salva" className="h-16 object-contain" />
-            </div>
-          )}
-          <SignaturePad value={config.assinatura} onChange={(v) => updateConfig({ assinatura: v })} />
-        </CardContent>
-      </Card>
+        <TabsContent value="empresa" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5 text-primary" /> Dados da Empresa</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Nome da Empresa</Label>
+                <Input value={config.nome} onChange={e => updateConfig({ nome: e.target.value })} placeholder="Minha Empresa Ltda" />
+              </div>
+              <div>
+                <Label>CNPJ</Label>
+                <Input value={config.cnpj} onChange={e => updateConfig({ cnpj: e.target.value })} placeholder="00.000.000/0001-00" />
+              </div>
+              <div>
+                <Label>Endereço</Label>
+                <Input value={config.endereco} onChange={e => updateConfig({ endereco: e.target.value })} placeholder="Rua, número, cidade - UF" />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <Label>Telefone</Label>
+                  <Input value={config.telefone} onChange={e => updateConfig({ telefone: e.target.value })} placeholder="(00) 00000-0000" />
+                </div>
+                <div>
+                  <Label>E-mail</Label>
+                  <Input value={config.email} onChange={e => updateConfig({ email: e.target.value })} placeholder="contato@empresa.com" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5 text-primary" /> Logomarca</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogo} />
+              {config.logo ? (
+                <div className="flex items-start gap-4">
+                  <img src={config.logo} alt="Logo" className="h-20 rounded-lg border object-contain" />
+                  <div className="space-y-2">
+                    <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
+                      <Upload className="h-4 w-4" /> Trocar
+                    </Button>
+                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => updateConfig({ logo: null })}>
+                      <Trash2 className="h-4 w-4" /> Remover
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button variant="outline" onClick={() => fileRef.current?.click()}>
+                  <Upload className="h-4 w-4" /> Enviar Logo
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="assinatura" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><PenTool className="h-5 w-5 text-primary" /> Assinatura do Responsável</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-3 text-sm text-muted-foreground">
+                Desenhe sua assinatura. Ela aparecerá nos orçamentos como "Assinatura do Trabalhador".
+              </p>
+              {config.assinatura && (
+                <div className="mb-3 rounded-lg border bg-muted/30 p-2">
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">Assinatura atual:</p>
+                  <img src={config.assinatura} alt="Assinatura salva" className="h-16 object-contain" />
+                </div>
+              )}
+              <SignaturePad value={config.assinatura} onChange={(v) => updateConfig({ assinatura: v })} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
