@@ -83,7 +83,7 @@ const Index = ({ user, signOut }: Props) => {
         <OrcamentosModule orcamentos={orcamentos} addOrcamento={addOrcamento} updateOrcamento={updateOrcamento} empresaLogo={config.logo} empresaNome={config.nome} empresaAssinatura={config.assinatura} />
       )}
       {activeModule === 'faturamento' && (
-        <FaturamentoModule recibos={recibos} addRecibo={addRecibo} empresaLogo={config.logo} empresaNome={config.nome} />
+        <FaturamentoModule recibos={recibos} addRecibo={addRecibo} empresaLogo={config.logo} empresaNome={config.nome} ordens={ordens} orcamentos={orcamentos} custos={custos} />
       )}
       {activeModule === 'custos' && (
         <CustosModule custos={custos} addCusto={addCusto} removeCusto={removeCusto} />
