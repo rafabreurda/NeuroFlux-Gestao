@@ -3,12 +3,17 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Convert username to internal email format
+function usernameToEmail(username: string): string {
+  return `${username.toLowerCase().replace(/\s+/g, '.')}@neuroflux.app`;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -46,17 +51,30 @@ serve(async (req) => {
     const { action, ...params } = await req.json();
 
     if (action === "create-user") {
-      const { email, password, nome, cpf, telefone, endereco, bairro, cidade, estado, empresa, cnpj } = params;
+      const { username, password, nome, cpf, telefone, endereco, bairro, cidade, estado, empresa, cnpj } = params;
+      
+      if (!username || !password) {
+        return new Response(JSON.stringify({ error: "Usuário e senha são obrigatórios" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const email = usernameToEmail(username);
 
       // Create auth user
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
-        user_metadata: { nome },
+        user_metadata: { nome: nome || username, username },
       });
 
       if (createError) {
+        if (createError.message.includes("already been registered")) {
+          return new Response(JSON.stringify({ error: "Este nome de usuário já está em uso" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         return new Response(JSON.stringify({ error: createError.message }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -64,7 +82,7 @@ serve(async (req) => {
 
       // Update profile with full data
       await supabaseAdmin.from("profiles").update({
-        nome: nome || "",
+        nome: nome || username,
         cpf: cpf || "",
         cnpj: cnpj || "",
         telefone: telefone || "",
@@ -83,14 +101,13 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({
         success: true,
-        user: { id: newUser.user!.id, email, nome, initial_password: password },
+        user: { id: newUser.user!.id, username, nome, initial_password: password },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action === "list-users") {
-      // Get all profiles with roles
       const { data: profiles } = await supabaseAdmin
         .from("profiles")
         .select("*")
@@ -100,10 +117,18 @@ serve(async (req) => {
         .from("user_roles")
         .select("*");
 
-      const enriched = (profiles || []).map((p: any) => ({
-        ...p,
-        role: roles?.find((r: any) => r.user_id === p.user_id)?.role || "user",
-      }));
+      // Get auth users to extract usernames
+      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+
+      const enriched = (profiles || []).map((p: any) => {
+        const authUser = authUsers?.users?.find((u: any) => u.id === p.user_id);
+        const username = authUser?.user_metadata?.username || authUser?.email?.split("@")[0] || "";
+        return {
+          ...p,
+          username,
+          role: roles?.find((r: any) => r.user_id === p.user_id)?.role || "user",
+        };
+      });
 
       return new Response(JSON.stringify({ users: enriched }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

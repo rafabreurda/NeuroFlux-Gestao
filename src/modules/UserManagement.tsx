@@ -9,6 +9,7 @@ import { UserPlus, Users, Trash2, Key, Eye, EyeOff, ChevronDown, ChevronUp } fro
 
 interface ManagedUser {
   user_id: string;
+  username: string;
   nome: string;
   email: string;
   cpf: string;
@@ -37,7 +38,7 @@ export default function UserManagement() {
   const [resetPassword, setResetPassword] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState({
-    email: '', password: '', nome: '', cpf: '', telefone: '',
+    username: '', password: '', nome: '', cpf: '', telefone: '',
     endereco: '', bairro: '', cidade: '', estado: '', empresa: '', cnpj: '',
   });
 
@@ -45,9 +46,6 @@ export default function UserManagement() {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
     const res = await supabase.functions.invoke('admin-users', {
       body: { action: 'list-users' },
     });
@@ -62,8 +60,8 @@ export default function UserManagement() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.email || !form.password) {
-      toast.error('Email e senha são obrigatórios');
+    if (!form.username || !form.password) {
+      toast.error('Usuário e senha são obrigatórios');
       return;
     }
 
@@ -75,12 +73,11 @@ export default function UserManagement() {
       toast.error(res.data.error);
     } else if (res.data?.success) {
       toast.success('Usuário criado com sucesso!');
-      // Store initial password for visibility
       setCreatedPasswords(prev => ({
         ...prev,
         [res.data.user.id]: form.password,
       }));
-      setForm({ email: '', password: '', nome: '', cpf: '', telefone: '', endereco: '', bairro: '', cidade: '', estado: '', empresa: '', cnpj: '' });
+      setForm({ username: '', password: '', nome: '', cpf: '', telefone: '', endereco: '', bairro: '', cidade: '', estado: '', empresa: '', cnpj: '' });
       setShowForm(false);
       fetchUsers();
     }
@@ -141,11 +138,11 @@ export default function UserManagement() {
             <form onSubmit={handleCreate} className="space-y-3">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <Label>E-mail *</Label>
-                  <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="usuario@email.com" required />
+                  <Label>Nome de Usuário (login) *</Label>
+                  <Input value={form.username} onChange={e => set('username', e.target.value)} placeholder="Ex: joao.silva" required />
                 </div>
                 <div>
-                  <Label>Senha Inicial *</Label>
+                  <Label>Senha *</Label>
                   <Input value={form.password} onChange={e => set('password', e.target.value)} placeholder="Mínimo 6 caracteres" required minLength={6} />
                 </div>
               </div>
@@ -220,8 +217,8 @@ export default function UserManagement() {
                   onClick={() => setExpandedUser(expandedUser === u.user_id ? null : u.user_id)}
                 >
                   <div>
-                    <p className="font-medium">{u.nome || 'Sem nome'}</p>
-                    <p className="text-xs text-muted-foreground">{u.email}</p>
+                    <p className="font-medium">{u.nome || u.username || 'Sem nome'}</p>
+                    <p className="text-xs text-muted-foreground">Login: <span className="font-mono">{u.username}</span></p>
                   </div>
                   {expandedUser === u.user_id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
@@ -239,7 +236,7 @@ export default function UserManagement() {
                     {createdPasswords[u.user_id] && (
                       <div className="flex items-center gap-2 rounded-md bg-muted p-2 text-sm">
                         <Key className="h-4 w-4 text-primary" />
-                        <span>Senha atual:</span>
+                        <span>Senha:</span>
                         <span className="font-mono font-medium">
                           {showPassword[u.user_id] ? createdPasswords[u.user_id] : '••••••'}
                         </span>
@@ -261,7 +258,7 @@ export default function UserManagement() {
                       </Button>
                     </div>
 
-                    <Button size="sm" variant="destructive" onClick={() => handleDelete(u.user_id, u.nome)}>
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(u.user_id, u.nome || u.username)}>
                       <Trash2 className="h-4 w-4 mr-1" /> Excluir Usuário
                     </Button>
                   </div>

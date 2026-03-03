@@ -3,12 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -16,24 +16,37 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Check if admin already exists
-    const { data: existingRoles } = await supabaseAdmin
-      .from("user_roles")
-      .select("*")
-      .eq("role", "admin");
+    // Delete old admin if exists
+    const { data: oldUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const oldAdmin = oldUsers?.users?.find((u: any) => u.email === "admin@neuroflux.com");
+    if (oldAdmin) {
+      await supabaseAdmin.auth.admin.deleteUser(oldAdmin.id);
+    }
 
-    if (existingRoles && existingRoles.length > 0) {
-      return new Response(JSON.stringify({ message: "Admin já existe" }), {
+    // Check if new admin already exists
+    const newAdmin = oldUsers?.users?.find((u: any) => u.email === "neuroflux@neuroflux.app");
+    if (newAdmin) {
+      // Ensure role exists
+      const { data: existingRole } = await supabaseAdmin
+        .from("user_roles")
+        .select("*")
+        .eq("user_id", newAdmin.id)
+        .eq("role", "admin")
+        .single();
+      if (!existingRole) {
+        await supabaseAdmin.from("user_roles").insert({ user_id: newAdmin.id, role: "admin" });
+      }
+      return new Response(JSON.stringify({ message: "Admin já existe", email: "neuroflux@neuroflux.app" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Create admin user
+    // Create admin user with username-based email
     const { data: adminUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: "admin@neuroflux.com",
+      email: "neuroflux@neuroflux.app",
       password: "607652",
       email_confirm: true,
-      user_metadata: { nome: "NeuroFlux Admin" },
+      user_metadata: { nome: "NeuroFlux Admin", username: "NeuroFlux" },
     });
 
     if (createError) {
@@ -56,7 +69,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       message: "Admin criado com sucesso",
-      email: "admin@neuroflux.com",
+      login: "NeuroFlux",
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
