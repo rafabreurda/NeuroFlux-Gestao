@@ -11,23 +11,11 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { user, loading, signOut } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-muted-foreground">Carregando...</p>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Auth />;
-  }
+  const noopSignOut = async () => {};
 
   return (
     <Routes>
-      <Route path="/" element={<Index user={user} signOut={signOut} />} />
+      <Route path="/" element={<Index user={null} signOut={noopSignOut} />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
