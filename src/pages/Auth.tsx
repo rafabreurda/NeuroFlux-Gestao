@@ -9,17 +9,19 @@ import { LogIn } from 'lucide-react';
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ username: '', password: '' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Convert username to internal email
+      const email = `${form.username.toLowerCase().replace(/\s+/g, '.')}@neuroflux.app`;
       const { error } = await supabase.auth.signInWithPassword({
-        email: form.email,
+        email,
         password: form.password,
       });
-      if (error) throw error;
+      if (error) throw new Error('Usuário ou senha incorretos');
       toast.success('Login realizado!');
     } catch (err: any) {
       toast.error(err.message || 'Erro na autenticação');
@@ -38,8 +40,8 @@ export default function Auth() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label>E-mail</Label>
-              <Input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="seu@email.com" required />
+              <Label>Usuário</Label>
+              <Input value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} placeholder="Seu nome de usuário" required />
             </div>
             <div>
               <Label>Senha</Label>
