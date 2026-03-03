@@ -44,7 +44,7 @@ const Index = ({ user, signOut }: Props) => {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <div className="flex flex-col items-center px-4 pt-10 pb-6">
-          <h1 className="text-2xl font-bold text-foreground">Pro Gestão</h1>
+          <h1 className="text-2xl font-bold text-foreground">NeuroFlux Gestão</h1>
           <p className="text-sm text-muted-foreground">Olá, {profile?.nome || user?.email || 'Usuário'}</p>
         </div>
         <div className="mx-auto grid w-full max-w-lg grid-cols-2 gap-3 px-4 pb-24 sm:grid-cols-3 sm:gap-4">
@@ -62,7 +62,7 @@ const Index = ({ user, signOut }: Props) => {
         </div>
         <div className="mt-auto flex flex-col items-center gap-2 pb-4">
           {user && <button onClick={signOut} className="text-sm text-destructive underline">Sair da conta</button>}
-          <p className="text-xs text-muted-foreground">v1.0 — Pro Gestão © 2026</p>
+          <p className="text-xs text-muted-foreground">v1.0 — NeuroFlux Gestão © 2026</p>
         </div>
       </div>
     );
