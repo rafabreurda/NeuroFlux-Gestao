@@ -12,6 +12,7 @@ import {
   useRecibos, useCustos, useEmpresaConfig
 } from '@/store/useStore';
 import { useProfile } from '@/hooks/useProfile';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Users, Wrench, FileText, Handshake, DollarSign, Settings } from 'lucide-react';
 
 type ModuleKey = 'home' | 'servicos' | 'orcamentos' | 'clientes' | 'faturamento' | 'custos' | 'config';
@@ -39,6 +40,7 @@ const Index = ({ user, signOut }: Props) => {
   const { custos, addCusto, removeCusto } = useCustos();
   const { config, updateConfig } = useEmpresaConfig();
   const { profile, updateProfile } = useProfile(user?.id);
+  const { isAdmin } = useUserRole(user?.id);
 
   if (activeModule === 'home') {
     return (
@@ -46,6 +48,7 @@ const Index = ({ user, signOut }: Props) => {
         <div className="flex flex-col items-center px-4 pt-10 pb-6">
           <h1 className="text-2xl font-bold text-foreground">NeuroFlux Gestão</h1>
           <p className="text-sm text-muted-foreground">Olá, {profile?.nome || user?.email || 'Usuário'}</p>
+          {isAdmin && <span className="mt-1 rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">Administrador</span>}
         </div>
         <div className="mx-auto grid w-full max-w-lg grid-cols-2 gap-3 px-4 pb-24 sm:grid-cols-3 sm:gap-4">
           {menuItems.map(item => (
@@ -86,7 +89,7 @@ const Index = ({ user, signOut }: Props) => {
         <CustosModule custos={custos} addCusto={addCusto} removeCusto={removeCusto} />
       )}
       {activeModule === 'config' && (
-        <ConfigModule config={config} updateConfig={updateConfig} profile={profile} updateProfile={updateProfile} />
+        <ConfigModule config={config} updateConfig={updateConfig} profile={profile} updateProfile={updateProfile} isAdmin={isAdmin} />
       )}
     </AppLayout>
   );

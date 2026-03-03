@@ -11,11 +11,26 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const noopSignOut = async () => {};
+  const { user, loading, signOut } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Auth />;
+  }
 
   return (
     <Routes>
-      <Route path="/" element={<Index user={null} signOut={noopSignOut} />} />
+      <Route path="/" element={<Index user={user} signOut={signOut} />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

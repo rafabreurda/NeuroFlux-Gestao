@@ -45,8 +45,8 @@ export default function AppLayout({ activeModule, onModuleChange, children, sign
         <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
           <Camera className="h-7 w-7 text-sidebar-primary" />
           <div>
-            <h1 className="text-base font-bold text-sidebar-primary-foreground">Pro Gestão</h1>
-            <p className="text-[10px] uppercase tracking-widest text-sidebar-foreground/60">Sistema Profissional</p>
+            <h1 className="text-base font-bold text-sidebar-primary-foreground">NeuroFlux Gestão</h1>
+            <p className="text-[10px] uppercase tracking-widest text-sidebar-foreground/60">Sistema Inteligente</p>
           </div>
         </div>
 
@@ -74,7 +74,7 @@ export default function AppLayout({ activeModule, onModuleChange, children, sign
           {signOut && (
             <button onClick={signOut} className="text-xs text-red-400 hover:underline">Sair da conta</button>
           )}
-          <p className="text-[11px] text-sidebar-foreground/50">v1.0 — Pro Gestão © 2026</p>
+          <p className="text-[11px] text-sidebar-foreground/50">v1.0 — NeuroFlux Gestão © 2026</p>
         </div>
       </aside>
 
