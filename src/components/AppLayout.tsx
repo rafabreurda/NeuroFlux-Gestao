@@ -4,6 +4,7 @@ import {
   Wrench, FileText, Users, DollarSign, Settings, Menu, X, Camera, Receipt, ChevronRight, Home, Handshake
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import BottomNav from '@/components/BottomNav';
 
 type ModuleKey = 'home' | 'servicos' | 'orcamentos' | 'clientes' | 'faturamento' | 'custos' | 'config';
 
@@ -35,11 +36,10 @@ export default function AppLayout({ activeModule, onModuleChange, children, sign
         <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — desktop only */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-sidebar text-sidebar-foreground transition-transform duration-300 lg:static lg:translate-x-0',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          'fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-sidebar text-sidebar-foreground lg:flex lg:static'
         )}
       >
         <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
@@ -48,9 +48,6 @@ export default function AppLayout({ activeModule, onModuleChange, children, sign
             <h1 className="text-base font-bold text-sidebar-primary-foreground">Pro Gestão</h1>
             <p className="text-[10px] uppercase tracking-widest text-sidebar-foreground/60">Sistema Profissional</p>
           </div>
-          <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
-            <X className="h-5 w-5" />
-          </button>
         </div>
 
         <nav className="flex-1 space-y-1 p-3">
@@ -84,18 +81,18 @@ export default function AppLayout({ activeModule, onModuleChange, children, sign
       {/* Main */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-14 items-center gap-3 border-b bg-card px-4 lg:px-6">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
-            <Menu className="h-5 w-5" />
-          </Button>
           <h2 className="text-lg font-semibold">
             {modules.find(m => m.key === activeModule)?.label}
           </h2>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto p-4 pb-24 lg:p-6 lg:pb-6">
           {children}
         </main>
       </div>
+
+      {/* Bottom nav — mobile & tablet only */}
+      <BottomNav activeModule={activeModule} onModuleChange={onModuleChange} />
     </div>
   );
 }
