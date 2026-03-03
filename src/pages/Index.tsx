@@ -26,7 +26,7 @@ const menuItems: { key: Exclude<ModuleKey, 'home'>; label: string; icon: React.R
 ];
 
 interface Props {
-  user: User;
+  user: User | null;
   signOut: () => Promise<void>;
 }
 
@@ -38,14 +38,14 @@ const Index = ({ user, signOut }: Props) => {
   const { recibos, addRecibo } = useRecibos();
   const { custos, addCusto, removeCusto } = useCustos();
   const { config, updateConfig } = useEmpresaConfig();
-  const { profile, updateProfile } = useProfile(user.id);
+  const { profile, updateProfile } = useProfile(user?.id);
 
   if (activeModule === 'home') {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <div className="flex flex-col items-center px-4 pt-10 pb-6">
           <h1 className="text-2xl font-bold text-foreground">Pro Gestão</h1>
-          <p className="text-sm text-muted-foreground">Olá, {profile?.nome || user.email}</p>
+          <p className="text-sm text-muted-foreground">Olá, {profile?.nome || user?.email || 'Usuário'}</p>
         </div>
         <div className="mx-auto grid w-full max-w-lg grid-cols-2 gap-4 px-4 pb-10 sm:grid-cols-3">
           {menuItems.map(item => (
