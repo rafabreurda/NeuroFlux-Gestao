@@ -21,6 +21,7 @@ interface Props {
 
 export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura }: Props) {
   const [clienteNome, setClienteNome] = useState('');
+  const [clienteId, setClienteId] = useState('');
   const [validade, setValidade] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [itens, setItens] = useState<OrcamentoItem[]>([{ descricao: '', quantidade: 1, valorUnitario: 0 }]);
@@ -49,7 +50,7 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
     if (!clienteNome) { toast.error('Preencha o cliente'); return; }
     if (itens.some(i => !i.descricao)) { toast.error('Preencha todos os itens'); return; }
     addOrcamento({
-      clienteId: '', clienteNome, itens, materiais: materiais.filter(m => m.nome),
+      clienteId, clienteNome, itens, materiais: materiais.filter(m => m.nome),
       maoDeObra: maoDeObraVal, validade, observacoes,
     });
     setClienteNome(''); setValidade(''); setObservacoes(''); setMaoDeObra('');
@@ -145,7 +146,7 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
                 <ClienteAutocomplete
                   clientes={clientes}
                   value={clienteNome}
-                  onChange={(nome) => setClienteNome(nome)}
+                  onChange={(nome, id) => { setClienteNome(nome); setClienteId(id || ''); }}
                 />
               </div>
               <div>
