@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, Trash2, Users, Search, ChevronDown, Wrench, FileText, Contact } from 'lucide-react';
+import { Plus, Trash2, Users, Search, ChevronDown, Wrench, FileText, Contact, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -16,29 +16,20 @@ interface Props {
   orcamentos: Orcamento[];
 }
 
-// Contact Picker API type declarations
-interface ContactAddress {
-  city?: string;
-  country?: string;
-  postalCode?: string;
-  region?: string;
-  street?: string;
-}
-
+// Contact Picker API
 interface ContactInfo {
   name?: string[];
   email?: string[];
   tel?: string[];
-  address?: ContactAddress[];
+  address?: { city?: string; street?: string; region?: string }[];
 }
 
 async function pickContact(): Promise<ContactInfo | null> {
   try {
     const contacts = (navigator as any).contacts;
     if (!contacts) return null;
-    const props = ['name', 'email', 'tel', 'address'];
     const supported = await contacts.getProperties();
-    const validProps = props.filter(p => supported.includes(p));
+    const validProps = ['name', 'email', 'tel', 'address'].filter(p => supported.includes(p));
     const [contact] = await contacts.select(validProps, { multiple: false });
     return contact || null;
   } catch {
@@ -50,25 +41,80 @@ function hasContactPicker(): boolean {
   return 'contacts' in navigator && 'ContactsManager' in window;
 }
 
+async function fetchCep(cep: string) {
+  const clean = cep.replace(/\D/g, '');
+  if (clean.length !== 8) return null;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.erro) return null;
+    return {
+      endereco: data.logradouro || '',
+      bairro: data.bairro || '',
+      cidade: data.localidade || '',
+      estado: data.uf || '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+function formatCep(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length > 5) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  return digits;
+}
+
 export default function ClientesModule({ clientes, addCliente, removeCliente, ordens, orcamentos }: Props) {
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [email, setEmail] = useState('');
   const [cpfCnpj, setCpfCnpj] = useState('');
+  const [cep, setCep] = useState('');
   const [endereco, setEndereco] = useState('');
+  const [bairro, setBairro] = useState('');
+  const [cidade, setCidade] = useState('');
+  const [estado, setEstado] = useState('');
+  const [loadingCep, setLoadingCep] = useState(false);
   const [search, setSearch] = useState('');
+
+  const handleCepChange = async (value: string) => {
+    const formatted = formatCep(value);
+    setCep(formatted);
+    const digits = value.replace(/\D/g, '');
+    if (digits.length === 8) {
+      setLoadingCep(true);
+      const result = await fetchCep(digits);
+      setLoadingCep(false);
+      if (result) {
+        setEndereco(result.endereco);
+        setBairro(result.bairro);
+        setCidade(result.cidade);
+        setEstado(result.estado);
+        toast.success('Endereço preenchido automaticamente!');
+      } else {
+        toast.error('CEP não encontrado.');
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setNome(''); setTelefone(''); setEmail(''); setCpfCnpj('');
+    setCep(''); setEndereco(''); setBairro(''); setCidade(''); setEstado('');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nome) { toast.error('Preencha o nome'); return; }
-    addCliente({ nome, telefone, email, cpfCnpj, endereco });
-    setNome(''); setTelefone(''); setEmail(''); setCpfCnpj(''); setEndereco('');
+    addCliente({ nome, telefone, email, cpfCnpj, cep: cep.replace(/\D/g, ''), endereco, bairro, cidade, estado });
+    resetForm();
     toast.success('Cliente cadastrado!');
   };
 
   const handleImportContact = async () => {
     if (!hasContactPicker()) {
-      toast.error('Importação de contatos não suportada neste navegador. Use Chrome no Android.');
+      toast.error('Importação de contatos não suportada neste navegador.');
       return;
     }
     const contact = await pickContact();
@@ -78,7 +124,9 @@ export default function ClientesModule({ clientes, addCliente, removeCliente, or
     setEmail(contact.email?.[0] || '');
     if (contact.address?.[0]) {
       const a = contact.address[0];
-      setEndereco([a.street, a.city, a.region].filter(Boolean).join(', '));
+      setEndereco(a.street || '');
+      setCidade(a.city || '');
+      setEstado(a.region || '');
     }
     toast.success('Contato importado! Revise e salve.');
   };
@@ -90,7 +138,6 @@ export default function ClientesModule({ clientes, addCliente, removeCliente, or
 
   const getClienteOrdens = (nome: string) =>
     ordens.filter(o => o.clienteNome.toLowerCase() === nome.toLowerCase());
-
   const getClienteOrcamentos = (nome: string) =>
     orcamentos.filter(o => o.clienteNome.toLowerCase() === nome.toLowerCase());
 
@@ -135,10 +182,43 @@ export default function ClientesModule({ clientes, addCliente, removeCliente, or
                 <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="email@exemplo.com" />
               </div>
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Endereço</label>
-              <Input value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, número, bairro, cidade" />
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium">CEP</label>
+                <div className="relative">
+                  <Input
+                    value={cep}
+                    onChange={e => handleCepChange(e.target.value)}
+                    placeholder="00000-000"
+                    maxLength={9}
+                  />
+                  {loadingCep && (
+                    <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-sm font-medium">Rua / Endereço</label>
+                <Input value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, número" />
+              </div>
             </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium">Bairro</label>
+                <Input value={bairro} onChange={e => setBairro(e.target.value)} placeholder="Bairro" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Cidade</label>
+                <Input value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Cidade" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Estado</label>
+                <Input value={estado} onChange={e => setEstado(e.target.value)} placeholder="UF" maxLength={2} />
+              </div>
+            </div>
+
             <Button type="submit" className="w-full sm:w-auto"><Plus className="h-4 w-4" /> Cadastrar</Button>
           </form>
         </CardContent>
@@ -163,6 +243,7 @@ export default function ClientesModule({ clientes, addCliente, removeCliente, or
               const cOrdens = getClienteOrdens(c.nome);
               const cOrcamentos = getClienteOrcamentos(c.nome);
               const totalHistorico = cOrdens.length + cOrcamentos.length;
+              const enderecoCompleto = [c.endereco, c.bairro, c.cidade, c.estado].filter(Boolean).join(', ');
 
               return (
                 <Card key={c.id}>
@@ -172,6 +253,7 @@ export default function ClientesModule({ clientes, addCliente, removeCliente, or
                         <p className="font-semibold truncate">{c.nome}</p>
                         <p className="text-sm text-muted-foreground truncate">{c.telefone} {c.email && `• ${c.email}`}</p>
                         {c.cpfCnpj && <p className="text-xs text-muted-foreground">{c.cpfCnpj}</p>}
+                        {enderecoCompleto && <p className="text-xs text-muted-foreground truncate">📍 {enderecoCompleto}</p>}
                       </div>
                       <Button size="sm" variant="ghost" className="text-destructive shrink-0" onClick={() => removeCliente(c.id)}>
                         <Trash2 className="h-4 w-4" />
@@ -182,9 +264,7 @@ export default function ClientesModule({ clientes, addCliente, removeCliente, or
                       <Collapsible className="mt-3">
                         <CollapsibleTrigger asChild>
                           <Button variant="outline" size="sm" className="w-full justify-between">
-                            <span className="flex items-center gap-2">
-                              📋 Histórico ({totalHistorico})
-                            </span>
+                            <span className="flex items-center gap-2">📋 Histórico ({totalHistorico})</span>
                             <ChevronDown className="h-4 w-4" />
                           </Button>
                         </CollapsibleTrigger>

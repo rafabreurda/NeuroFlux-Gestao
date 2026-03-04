@@ -4,7 +4,11 @@ export interface Cliente {
   telefone: string;
   email: string;
   cpfCnpj: string;
+  cep: string;
   endereco: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
   criadoEm: string;
 }
 
