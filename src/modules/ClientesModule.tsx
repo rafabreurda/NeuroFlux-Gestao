@@ -5,9 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Trash2, Users, Search, ChevronDown, Wrench, FileText, Contact, Loader2, Pencil, UserPlus } from 'lucide-react';
+import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, UserPlus, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCpfCnpj, formatPhone, formatCep } from '@/lib/masks';
 
@@ -70,6 +69,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
   const [search, setSearch] = useState('');
   const [editCliente, setEditCliente] = useState<Cliente | null>(null);
   const [activeLetter, setActiveLetter] = useState<string | null>(null);
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
 
   const handleCepChange = async (value: string, setters?: { setEndereco: (v: string) => void; setBairro: (v: string) => void; setCidade: (v: string) => void; setEstado: (v: string) => void }) => {
     const digits = value.replace(/\D/g, '');
@@ -132,17 +132,17 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
     });
     toast.success('Cliente atualizado!');
     setEditCliente(null);
+    // Update selectedCliente if it was being viewed
+    if (selectedCliente?.id === editCliente.id) {
+      setSelectedCliente(editCliente);
+    }
   };
 
-  // Sort alphabetically and group by first letter
   const sortedFiltered = useMemo(() => {
     const base = clientes
       .filter(c => c.nome.toLowerCase().includes(search.toLowerCase()) || c.cpfCnpj.includes(search))
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-
-    if (activeLetter) {
-      return base.filter(c => c.nome[0]?.toUpperCase() === activeLetter);
-    }
+    if (activeLetter) return base.filter(c => c.nome[0]?.toUpperCase() === activeLetter);
     return base;
   }, [clientes, search, activeLetter]);
 
@@ -158,10 +158,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
 
   const availableLetters = useMemo(() => {
     const set = new Set<string>();
-    clientes.forEach(c => {
-      const l = c.nome[0]?.toUpperCase();
-      if (l) set.add(l);
-    });
+    clientes.forEach(c => { const l = c.nome[0]?.toUpperCase(); if (l) set.add(l); });
     return set;
   }, [clientes]);
 
@@ -176,6 +173,130 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
     return 'Pendente';
   };
 
+  // ==================== DETAIL VIEW ====================
+  if (selectedCliente) {
+    const cOrdens = getClienteOrdens(selectedCliente.id, selectedCliente.nome);
+    const cOrcamentos = getClienteOrcamentos(selectedCliente.id, selectedCliente.nome);
+    const enderecoCompleto = [selectedCliente.endereco, selectedCliente.bairro, selectedCliente.cidade, selectedCliente.estado].filter(Boolean).join(', ');
+
+    return (
+      <div className="space-y-4">
+        <Button variant="ghost" size="sm" onClick={() => setSelectedCliente(null)} className="gap-2">
+          <ArrowLeft className="h-4 w-4" /> Voltar à Agenda
+        </Button>
+
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold">{selectedCliente.nome}</h2>
+          <div className="flex gap-1">
+            <Button size="sm" variant="outline" onClick={() => setEditCliente({ ...selectedCliente })}><Pencil className="h-4 w-4" /></Button>
+            <Button size="sm" variant="outline" className="text-destructive" onClick={() => { removeCliente(selectedCliente.id); setSelectedCliente(null); }}><Trash2 className="h-4 w-4" /></Button>
+          </div>
+        </div>
+
+        <Tabs defaultValue="cadastro">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="cadastro">📋 Cadastro</TabsTrigger>
+            <TabsTrigger value="historico">📂 Histórico ({cOrdens.length + cOrcamentos.length})</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="cadastro" className="mt-4">
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                {selectedCliente.telefone && <p className="text-sm"><span className="font-medium text-muted-foreground">Telefone:</span> {selectedCliente.telefone}</p>}
+                {selectedCliente.email && <p className="text-sm"><span className="font-medium text-muted-foreground">E-mail:</span> {selectedCliente.email}</p>}
+                {selectedCliente.cpfCnpj && <p className="text-sm"><span className="font-medium text-muted-foreground">CPF/CNPJ:</span> {selectedCliente.cpfCnpj}</p>}
+                {selectedCliente.cep && <p className="text-sm"><span className="font-medium text-muted-foreground">CEP:</span> {formatCep(selectedCliente.cep)}</p>}
+                {enderecoCompleto && <p className="text-sm"><span className="font-medium text-muted-foreground">Endereço:</span> {enderecoCompleto}</p>}
+                {!selectedCliente.telefone && !selectedCliente.email && !selectedCliente.cpfCnpj && !enderecoCompleto && (
+                  <p className="text-sm text-muted-foreground text-center py-4">Nenhum dado adicional cadastrado.</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="historico" className="mt-4 space-y-4">
+            {cOrdens.length === 0 && cOrcamentos.length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum serviço ou orçamento registrado.</CardContent></Card>
+            ) : (
+              <>
+                {cOrdens.length > 0 && (
+                  <div>
+                    <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Wrench className="h-4 w-4 text-primary" /> Serviços ({cOrdens.length})</h4>
+                    <div className="space-y-2">
+                      {cOrdens.map(os => (
+                        <Card key={os.id}>
+                          <CardContent className="p-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{os.descricao}</p>
+                              <p className="text-xs text-muted-foreground">{os.data} {os.valor > 0 && `• R$ ${os.valor.toFixed(2)}`}</p>
+                            </div>
+                            <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(os.status)}</Badge>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {cOrcamentos.length > 0 && (
+                  <div>
+                    <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold"><FileText className="h-4 w-4 text-primary" /> Orçamentos ({cOrcamentos.length})</h4>
+                    <div className="space-y-2">
+                      {cOrcamentos.map(orc => {
+                        const t = orc.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0);
+                        return (
+                          <Card key={orc.id}>
+                            <CardContent className="p-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0">
+                                <p className="font-medium truncate">{orc.itens.length} itens</p>
+                                <p className="text-xs text-muted-foreground">R$ {t.toFixed(2)} • {new Date(orc.criadoEm).toLocaleDateString('pt-BR')}</p>
+                              </div>
+                              <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(orc.status)}</Badge>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Edit Dialog */}
+        <Dialog open={!!editCliente} onOpenChange={() => setEditCliente(null)}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader><DialogTitle>Editar Cliente</DialogTitle></DialogHeader>
+            {editCliente && (
+              <div className="space-y-3">
+                <div><label className="mb-1 block text-sm font-medium">Nome</label><Input value={editCliente.nome} onChange={e => setEditCliente({ ...editCliente, nome: e.target.value })} /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="mb-1 block text-sm font-medium">CPF/CNPJ</label><Input value={editCliente.cpfCnpj} onChange={e => setEditCliente({ ...editCliente, cpfCnpj: formatCpfCnpj(e.target.value) })} /></div>
+                  <div><label className="mb-1 block text-sm font-medium">Telefone</label><Input value={editCliente.telefone} onChange={e => setEditCliente({ ...editCliente, telefone: formatPhone(e.target.value) })} /></div>
+                </div>
+                <div><label className="mb-1 block text-sm font-medium">E-mail</label><Input value={editCliente.email} onChange={e => setEditCliente({ ...editCliente, email: e.target.value })} /></div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div><label className="mb-1 block text-sm font-medium">CEP</label><Input value={editCliente.cep} onChange={e => { const f = formatCep(e.target.value); setEditCliente({ ...editCliente, cep: f }); handleCepChange(e.target.value, { setEndereco: v => setEditCliente(prev => prev ? { ...prev, endereco: v } : null), setBairro: v => setEditCliente(prev => prev ? { ...prev, bairro: v } : null), setCidade: v => setEditCliente(prev => prev ? { ...prev, cidade: v } : null), setEstado: v => setEditCliente(prev => prev ? { ...prev, estado: v } : null) }); }} maxLength={9} /></div>
+                  <div className="col-span-2"><label className="mb-1 block text-sm font-medium">Endereço</label><Input value={editCliente.endereco} onChange={e => setEditCliente({ ...editCliente, endereco: e.target.value })} /></div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div><label className="mb-1 block text-sm font-medium">Bairro</label><Input value={editCliente.bairro} onChange={e => setEditCliente({ ...editCliente, bairro: e.target.value })} /></div>
+                  <div><label className="mb-1 block text-sm font-medium">Cidade</label><Input value={editCliente.cidade} onChange={e => setEditCliente({ ...editCliente, cidade: e.target.value })} /></div>
+                  <div><label className="mb-1 block text-sm font-medium">Estado</label><Input value={editCliente.estado} onChange={e => setEditCliente({ ...editCliente, estado: e.target.value })} maxLength={2} /></div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditCliente(null)}>Cancelar</Button>
+              <Button onClick={handleSaveEdit}>Salvar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // ==================== AGENDA + NOVO CLIENTE ====================
   return (
     <div className="space-y-4">
       <Tabs defaultValue="agenda">
@@ -184,7 +305,6 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
           <TabsTrigger value="novo" className="gap-2"><UserPlus className="h-4 w-4" /> Novo Cliente</TabsTrigger>
         </TabsList>
 
-        {/* ========== TAB: NOVO CLIENTE ========== */}
         <TabsContent value="novo" className="mt-4">
           <Card>
             <CardHeader>
@@ -226,9 +346,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
           </Card>
         </TabsContent>
 
-        {/* ========== TAB: AGENDA ========== */}
         <TabsContent value="agenda" className="mt-4 space-y-4">
-          {/* Search + counter */}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="flex items-center gap-2 text-lg font-semibold">
               <Users className="h-5 w-5" /> Clientes <Badge variant="secondary">{clientes.length}</Badge>
@@ -239,9 +357,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
             </div>
           </div>
 
-          {/* Content with alphabet sidebar */}
           <div className="flex gap-2">
-            {/* Alphabet sidebar */}
             <div className="sticky top-0 flex flex-col items-center gap-0.5 py-1 self-start">
               {ALPHABET.map(letter => (
                 <button
@@ -261,7 +377,6 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
               ))}
             </div>
 
-            {/* Client list */}
             <div className="flex-1 min-w-0">
               {sortedFiltered.length === 0 ? (
                 <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum cliente encontrado.</CardContent></Card>
@@ -273,74 +388,17 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
                         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">{letter}</span>
                         <div className="h-px flex-1 bg-border" />
                       </div>
-                      <div className="space-y-2">
-                        {group.map(c => {
-                          const cOrdens = getClienteOrdens(c.id, c.nome);
-                          const cOrcamentos = getClienteOrcamentos(c.id, c.nome);
-                          const totalHistorico = cOrdens.length + cOrcamentos.length;
-                          const enderecoCompleto = [c.endereco, c.bairro, c.cidade, c.estado].filter(Boolean).join(', ');
-                          return (
-                            <Collapsible key={c.id}>
-                              <CollapsibleTrigger asChild>
-                                <button className="flex w-full items-center justify-between rounded-lg border bg-card px-3 py-2.5 text-left hover:bg-muted/50 transition-colors">
-                                  <span className="font-medium truncate">{c.nome}</span>
-                                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                </button>
-                              </CollapsibleTrigger>
-                              <CollapsibleContent>
-                                <Card className="mt-1 border-l-4 border-l-primary">
-                                  <CardContent className="p-3 sm:p-4 space-y-2">
-                                    <div className="flex items-start justify-between gap-2">
-                                      <div className="min-w-0 flex-1 space-y-1">
-                                        {c.telefone && <p className="text-sm text-muted-foreground">📞 {c.telefone}</p>}
-                                        {c.email && <p className="text-sm text-muted-foreground">✉️ {c.email}</p>}
-                                        {c.cpfCnpj && <p className="text-sm text-muted-foreground">🪪 {c.cpfCnpj}</p>}
-                                        {enderecoCompleto && <p className="text-sm text-muted-foreground truncate">📍 {enderecoCompleto}</p>}
-                                      </div>
-                                      <div className="flex gap-1 shrink-0">
-                                        <Button size="sm" variant="ghost" onClick={() => setEditCliente({ ...c })}><Pencil className="h-4 w-4" /></Button>
-                                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeCliente(c.id)}><Trash2 className="h-4 w-4" /></Button>
-                                      </div>
-                                    </div>
-                                    {totalHistorico > 0 && (
-                                      <div className="space-y-2 pt-2 border-t">
-                                        {cOrdens.length > 0 && (
-                                          <div>
-                                            <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><Wrench className="h-3 w-3" /> Serviços ({cOrdens.length})</p>
-                                            <div className="space-y-1">
-                                              {cOrdens.map(os => (
-                                                <div key={os.id} className="flex flex-col gap-1 rounded-md border bg-muted/30 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-                                                  <div className="min-w-0"><p className="font-medium truncate">{os.descricao}</p><p className="text-xs text-muted-foreground">{os.data} {os.valor > 0 && `• R$ ${os.valor.toFixed(2)}`}</p></div>
-                                                  <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(os.status)}</Badge>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-                                        {cOrcamentos.length > 0 && (
-                                          <div>
-                                            <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><FileText className="h-3 w-3" /> Orçamentos ({cOrcamentos.length})</p>
-                                            <div className="space-y-1">
-                                              {cOrcamentos.map(orc => {
-                                                const t = orc.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0);
-                                                return (
-                                                  <div key={orc.id} className="flex flex-col gap-1 rounded-md border bg-muted/30 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-                                                    <div className="min-w-0"><p className="font-medium truncate">{orc.itens.length} itens</p><p className="text-xs text-muted-foreground">R$ {t.toFixed(2)} • {new Date(orc.criadoEm).toLocaleDateString('pt-BR')}</p></div>
-                                                    <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(orc.status)}</Badge>
-                                                  </div>
-                                                );
-                                              })}
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </CardContent>
-                                </Card>
-                              </CollapsibleContent>
-                            </Collapsible>
-                          );
-                        })}
+                      <div className="space-y-1">
+                        {group.map(c => (
+                          <button
+                            key={c.id}
+                            onClick={() => setSelectedCliente(c)}
+                            className="flex w-full items-center justify-between rounded-lg border bg-card px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
+                          >
+                            <span className="font-medium truncate">{c.nome}</span>
+                            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          </button>
+                        ))}
                       </div>
                     </div>
                   ))}
