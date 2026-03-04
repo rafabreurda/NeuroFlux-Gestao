@@ -7,6 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import PWALifecycle from "@/components/PWALifecycle";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +46,8 @@ const App = () => (
       <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>
+      <PWAInstallPrompt />
+      <PWALifecycle />
     </TooltipProvider>
   </QueryClientProvider>
 );
