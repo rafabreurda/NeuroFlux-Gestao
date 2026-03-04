@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Cliente, OrdemServico, Orcamento } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Trash2, Users, Search, ChevronDown, Wrench, FileText, Contact, Loader2, Pencil } from 'lucide-react';
+import { Plus, Trash2, Users, Search, ChevronDown, Wrench, FileText, Contact, Loader2, Pencil, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCpfCnpj, formatPhone, formatCep } from '@/lib/masks';
 
@@ -53,6 +54,8 @@ async function fetchCep(cep: string) {
   } catch { return null; }
 }
 
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
 export default function ClientesModule({ clientes, addCliente, updateCliente, removeCliente, ordens, orcamentos }: Props) {
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -66,14 +69,9 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
   const [loadingCep, setLoadingCep] = useState(false);
   const [search, setSearch] = useState('');
   const [editCliente, setEditCliente] = useState<Cliente | null>(null);
+  const [activeLetter, setActiveLetter] = useState<string | null>(null);
 
   const handleCepChange = async (value: string, setters?: { setEndereco: (v: string) => void; setBairro: (v: string) => void; setCidade: (v: string) => void; setEstado: (v: string) => void }) => {
-    const formatted = formatCep(value);
-    if (setters) {
-      // editing mode
-    } else {
-      setCep(formatted);
-    }
     const digits = value.replace(/\D/g, '');
     if (digits.length === 8) {
       setLoadingCep(true);
@@ -136,9 +134,36 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
     setEditCliente(null);
   };
 
-  const filtered = clientes.filter(c =>
-    c.nome.toLowerCase().includes(search.toLowerCase()) || c.cpfCnpj.includes(search)
-  );
+  // Sort alphabetically and group by first letter
+  const sortedFiltered = useMemo(() => {
+    const base = clientes
+      .filter(c => c.nome.toLowerCase().includes(search.toLowerCase()) || c.cpfCnpj.includes(search))
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+    if (activeLetter) {
+      return base.filter(c => c.nome[0]?.toUpperCase() === activeLetter);
+    }
+    return base;
+  }, [clientes, search, activeLetter]);
+
+  const groupedClientes = useMemo(() => {
+    const groups: Record<string, Cliente[]> = {};
+    sortedFiltered.forEach(c => {
+      const letter = c.nome[0]?.toUpperCase() || '#';
+      if (!groups[letter]) groups[letter] = [];
+      groups[letter].push(c);
+    });
+    return groups;
+  }, [sortedFiltered]);
+
+  const availableLetters = useMemo(() => {
+    const set = new Set<string>();
+    clientes.forEach(c => {
+      const l = c.nome[0]?.toUpperCase();
+      if (l) set.add(l);
+    });
+    return set;
+  }, [clientes]);
 
   const getClienteOrdens = (id: string, nome: string) => ordens.filter(o => o.clienteId === id || o.clienteNome.toLowerCase() === nome.toLowerCase());
   const getClienteOrcamentos = (id: string, nome: string) => orcamentos.filter(o => o.clienteId === id || o.clienteNome.toLowerCase() === nome.toLowerCase());
@@ -152,148 +177,176 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5 text-primary" /> Novo Cliente</CardTitle>
-            <Button type="button" variant="outline" size="sm" onClick={handleImportContact} className="gap-2">
-              <Contact className="h-4 w-4" />
-              <span className="hidden sm:inline">Importar da Agenda</span>
-              <span className="sm:hidden">Agenda</span>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium">Nome</label>
-                <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome completo" />
+    <div className="space-y-4">
+      <Tabs defaultValue="agenda">
+        <TabsList className="w-full grid grid-cols-2">
+          <TabsTrigger value="agenda" className="gap-2"><Users className="h-4 w-4" /> Agenda</TabsTrigger>
+          <TabsTrigger value="novo" className="gap-2"><UserPlus className="h-4 w-4" /> Novo Cliente</TabsTrigger>
+        </TabsList>
+
+        {/* ========== TAB: NOVO CLIENTE ========== */}
+        <TabsContent value="novo" className="mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5 text-primary" /> Cadastrar Cliente</CardTitle>
+                <Button type="button" variant="outline" size="sm" onClick={handleImportContact} className="gap-2">
+                  <Contact className="h-4 w-4" />
+                  <span className="hidden sm:inline">Importar da Agenda</span>
+                  <span className="sm:hidden">Agenda</span>
+                </Button>
               </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">CPF / CNPJ</label>
-                <Input value={cpfCnpj} onChange={e => setCpfCnpj(formatCpfCnpj(e.target.value))} placeholder="000.000.000-00" />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Telefone</label>
-                <Input value={telefone} onChange={e => setTelefone(formatPhone(e.target.value))} placeholder="(00) 00000-0000" />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">E-mail</label>
-                <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="email@exemplo.com" />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium">CEP</label>
-                <div className="relative">
-                  <Input value={cep} onChange={e => { setCep(formatCep(e.target.value)); handleCepChange(e.target.value); }} placeholder="00000-000" maxLength={9} />
-                  {loadingCep && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                  <div><label className="mb-1 block text-sm font-medium">Nome</label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome completo" /></div>
+                  <div><label className="mb-1 block text-sm font-medium">CPF / CNPJ</label><Input value={cpfCnpj} onChange={e => setCpfCnpj(formatCpfCnpj(e.target.value))} placeholder="000.000.000-00" /></div>
+                  <div><label className="mb-1 block text-sm font-medium">Telefone</label><Input value={telefone} onChange={e => setTelefone(formatPhone(e.target.value))} placeholder="(00) 00000-0000" /></div>
+                  <div><label className="mb-1 block text-sm font-medium">E-mail</label><Input value={email} onChange={e => setEmail(e.target.value)} placeholder="email@exemplo.com" /></div>
                 </div>
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mb-1 block text-sm font-medium">Rua / Endereço</label>
-                <Input value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, número" />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-              <div><label className="mb-1 block text-sm font-medium">Bairro</label><Input value={bairro} onChange={e => setBairro(e.target.value)} placeholder="Bairro" /></div>
-              <div><label className="mb-1 block text-sm font-medium">Cidade</label><Input value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Cidade" /></div>
-              <div><label className="mb-1 block text-sm font-medium">Estado</label><Input value={estado} onChange={e => setEstado(e.target.value)} placeholder="UF" maxLength={2} /></div>
-            </div>
-            <Button type="submit" className="w-full sm:w-auto"><Plus className="h-4 w-4" /> Cadastrar</Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <div>
-        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h3 className="flex items-center gap-2 text-lg font-semibold">
-            <Users className="h-5 w-5" /> Clientes <Badge variant="secondary">{clientes.length}</Badge>
-          </h3>
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-        </div>
-
-        {filtered.length === 0 ? (
-          <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum cliente encontrado.</CardContent></Card>
-        ) : (
-          <div className="space-y-2">
-            {filtered.map(c => {
-              const cOrdens = getClienteOrdens(c.id, c.nome);
-              const cOrcamentos = getClienteOrcamentos(c.id, c.nome);
-              const totalHistorico = cOrdens.length + cOrcamentos.length;
-              const enderecoCompleto = [c.endereco, c.bairro, c.cidade, c.estado].filter(Boolean).join(', ');
-              return (
-                <Card key={c.id}>
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold truncate">{c.nome}</p>
-                        <p className="text-sm text-muted-foreground truncate">{c.telefone} {c.email && `• ${c.email}`}</p>
-                        {c.cpfCnpj && <p className="text-xs text-muted-foreground">{c.cpfCnpj}</p>}
-                        {enderecoCompleto && <p className="text-xs text-muted-foreground truncate">📍 {enderecoCompleto}</p>}
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        <Button size="sm" variant="ghost" onClick={() => setEditCliente({ ...c })}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeCliente(c.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">CEP</label>
+                    <div className="relative">
+                      <Input value={cep} onChange={e => { setCep(formatCep(e.target.value)); handleCepChange(e.target.value); }} placeholder="00000-000" maxLength={9} />
+                      {loadingCep && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
                     </div>
-                    {totalHistorico > 0 && (
-                      <Collapsible className="mt-3">
-                        <CollapsibleTrigger asChild>
-                          <Button variant="outline" size="sm" className="w-full justify-between">
-                            <span className="flex items-center gap-2">📋 Histórico ({totalHistorico})</span>
-                            <ChevronDown className="h-4 w-4" />
-                          </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2 space-y-2">
-                          {cOrdens.length > 0 && (
-                            <div>
-                              <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><Wrench className="h-3 w-3" /> Serviços ({cOrdens.length})</p>
-                              <div className="space-y-1">
-                                {cOrdens.map(os => (
-                                  <div key={os.id} className="flex flex-col gap-1 rounded-md border bg-muted/30 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="min-w-0"><p className="font-medium truncate">{os.descricao}</p><p className="text-xs text-muted-foreground">{os.data} {os.valor > 0 && `• R$ ${os.valor.toFixed(2)}`}</p></div>
-                                    <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(os.status)}</Badge>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {cOrcamentos.length > 0 && (
-                            <div>
-                              <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><FileText className="h-3 w-3" /> Orçamentos ({cOrcamentos.length})</p>
-                              <div className="space-y-1">
-                                {cOrcamentos.map(orc => {
-                                  const t = orc.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0);
-                                  return (
-                                    <div key={orc.id} className="flex flex-col gap-1 rounded-md border bg-muted/30 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-                                      <div className="min-w-0"><p className="font-medium truncate">{orc.itens.length} itens</p><p className="text-xs text-muted-foreground">R$ {t.toFixed(2)} • {new Date(orc.criadoEm).toLocaleDateString('pt-BR')}</p></div>
-                                      <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(orc.status)}</Badge>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </CollapsibleContent>
-                      </Collapsible>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  </div>
+                  <div className="sm:col-span-2"><label className="mb-1 block text-sm font-medium">Rua / Endereço</label><Input value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, número" /></div>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+                  <div><label className="mb-1 block text-sm font-medium">Bairro</label><Input value={bairro} onChange={e => setBairro(e.target.value)} placeholder="Bairro" /></div>
+                  <div><label className="mb-1 block text-sm font-medium">Cidade</label><Input value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Cidade" /></div>
+                  <div><label className="mb-1 block text-sm font-medium">Estado</label><Input value={estado} onChange={e => setEstado(e.target.value)} placeholder="UF" maxLength={2} /></div>
+                </div>
+                <Button type="submit" className="w-full sm:w-auto"><Plus className="h-4 w-4" /> Cadastrar</Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========== TAB: AGENDA ========== */}
+        <TabsContent value="agenda" className="mt-4 space-y-4">
+          {/* Search + counter */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="flex items-center gap-2 text-lg font-semibold">
+              <Users className="h-5 w-5" /> Clientes <Badge variant="secondary">{clientes.length}</Badge>
+            </h3>
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input className="pl-9" placeholder="Buscar por nome ou CPF..." value={search} onChange={e => { setSearch(e.target.value); setActiveLetter(null); }} />
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Alphabet bar */}
+          <div className="flex flex-wrap gap-1">
+            <Button
+              size="sm"
+              variant={activeLetter === null ? 'default' : 'ghost'}
+              className="h-7 w-7 p-0 text-xs"
+              onClick={() => setActiveLetter(null)}
+            >
+              Aa
+            </Button>
+            {ALPHABET.map(letter => (
+              <Button
+                key={letter}
+                size="sm"
+                variant={activeLetter === letter ? 'default' : 'ghost'}
+                className={`h-7 w-7 p-0 text-xs ${!availableLetters.has(letter) ? 'opacity-30 pointer-events-none' : ''}`}
+                onClick={() => setActiveLetter(letter === activeLetter ? null : letter)}
+                disabled={!availableLetters.has(letter)}
+              >
+                {letter}
+              </Button>
+            ))}
+          </div>
+
+          {/* Clients grouped by letter */}
+          {sortedFiltered.length === 0 ? (
+            <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum cliente encontrado.</CardContent></Card>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(groupedClientes).map(([letter, group]) => (
+                <div key={letter}>
+                  <div className="sticky top-0 z-10 mb-2 flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">{letter}</span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                  <div className="space-y-2">
+                    {group.map(c => {
+                      const cOrdens = getClienteOrdens(c.id, c.nome);
+                      const cOrcamentos = getClienteOrcamentos(c.id, c.nome);
+                      const totalHistorico = cOrdens.length + cOrcamentos.length;
+                      const enderecoCompleto = [c.endereco, c.bairro, c.cidade, c.estado].filter(Boolean).join(', ');
+                      return (
+                        <Card key={c.id}>
+                          <CardContent className="p-3 sm:p-4">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold truncate">{c.nome}</p>
+                                <p className="text-sm text-muted-foreground truncate">{c.telefone} {c.email && `• ${c.email}`}</p>
+                                {c.cpfCnpj && <p className="text-xs text-muted-foreground">{c.cpfCnpj}</p>}
+                                {enderecoCompleto && <p className="text-xs text-muted-foreground truncate">📍 {enderecoCompleto}</p>}
+                              </div>
+                              <div className="flex gap-1 shrink-0">
+                                <Button size="sm" variant="ghost" onClick={() => setEditCliente({ ...c })}><Pencil className="h-4 w-4" /></Button>
+                                <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeCliente(c.id)}><Trash2 className="h-4 w-4" /></Button>
+                              </div>
+                            </div>
+                            {totalHistorico > 0 && (
+                              <Collapsible className="mt-3">
+                                <CollapsibleTrigger asChild>
+                                  <Button variant="outline" size="sm" className="w-full justify-between">
+                                    <span className="flex items-center gap-2">📋 Histórico ({totalHistorico})</span>
+                                    <ChevronDown className="h-4 w-4" />
+                                  </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="mt-2 space-y-2">
+                                  {cOrdens.length > 0 && (
+                                    <div>
+                                      <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><Wrench className="h-3 w-3" /> Serviços ({cOrdens.length})</p>
+                                      <div className="space-y-1">
+                                        {cOrdens.map(os => (
+                                          <div key={os.id} className="flex flex-col gap-1 rounded-md border bg-muted/30 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+                                            <div className="min-w-0"><p className="font-medium truncate">{os.descricao}</p><p className="text-xs text-muted-foreground">{os.data} {os.valor > 0 && `• R$ ${os.valor.toFixed(2)}`}</p></div>
+                                            <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(os.status)}</Badge>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {cOrcamentos.length > 0 && (
+                                    <div>
+                                      <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><FileText className="h-3 w-3" /> Orçamentos ({cOrcamentos.length})</p>
+                                      <div className="space-y-1">
+                                        {cOrcamentos.map(orc => {
+                                          const t = orc.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0);
+                                          return (
+                                            <div key={orc.id} className="flex flex-col gap-1 rounded-md border bg-muted/30 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+                                              <div className="min-w-0"><p className="font-medium truncate">{orc.itens.length} itens</p><p className="text-xs text-muted-foreground">R$ {t.toFixed(2)} • {new Date(orc.criadoEm).toLocaleDateString('pt-BR')}</p></div>
+                                              <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(orc.status)}</Badge>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                </CollapsibleContent>
+                              </Collapsible>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Dialog */}
       <Dialog open={!!editCliente} onOpenChange={() => setEditCliente(null)}>
