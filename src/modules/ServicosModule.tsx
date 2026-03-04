@@ -22,6 +22,7 @@ interface Props {
 
 export default function ServicosModule({ ordens, clientes, addOrdem, updateOrdem, removeOrdem }: Props) {
   const [clienteNome, setClienteNome] = useState('');
+  const [clienteId, setClienteId] = useState('');
   const [descricao, setDescricao] = useState('');
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
   const [codigo, setCodigo] = useState('');
@@ -39,7 +40,7 @@ export default function ServicosModule({ ordens, clientes, addOrdem, updateOrdem
       return;
     }
     addOrdem({
-      clienteId: '',
+      clienteId,
       clienteNome,
       descricao,
       data,
@@ -47,6 +48,7 @@ export default function ServicosModule({ ordens, clientes, addOrdem, updateOrdem
       valor: parseFloat(valor) || 0,
     });
     setClienteNome('');
+    setClienteId('');
     setDescricao('');
     setCodigo('');
     setValor('');
@@ -111,7 +113,7 @@ export default function ServicosModule({ ordens, clientes, addOrdem, updateOrdem
               <ClienteAutocomplete
                 clientes={clientes}
                 value={clienteNome}
-                onChange={(nome, id) => setClienteNome(nome)}
+                onChange={(nome, id) => { setClienteNome(nome); setClienteId(id || ''); }}
               />
             </div>
             <div>

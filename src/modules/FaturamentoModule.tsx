@@ -53,6 +53,7 @@ const CHART_COLORS = ['hsl(142, 71%, 45%)', 'hsl(0, 84%, 60%)', 'hsl(217, 91%, 6
 
 export default function FaturamentoModule({ recibos, addRecibo, empresaLogo, empresaNome, ordens, orcamentos, custos, clientes }: Props) {
   const [clienteNome, setClienteNome] = useState('');
+  const [clienteId, setClienteId] = useState('');
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState('');
   const [formaPagamento, setFormaPagamento] = useState('Dinheiro');
@@ -94,7 +95,7 @@ export default function FaturamentoModule({ recibos, addRecibo, empresaLogo, emp
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!clienteNome || !valor) { toast.error('Preencha cliente e valor'); return; }
-    addRecibo({ clienteId: '', clienteNome, descricao, valor: parseFloat(valor), formaPagamento });
+    addRecibo({ clienteId, clienteNome, descricao, valor: parseFloat(valor), formaPagamento });
     setClienteNome(''); setDescricao(''); setValor('');
     toast.success('Recibo emitido!');
   };
@@ -243,7 +244,7 @@ export default function FaturamentoModule({ recibos, addRecibo, empresaLogo, emp
                     <ClienteAutocomplete
                       clientes={clientes}
                       value={clienteNome}
-                      onChange={(nome) => setClienteNome(nome)}
+                      onChange={(nome, id) => { setClienteNome(nome); setClienteId(id || ''); }}
                     />
                   </div>
                   <div>

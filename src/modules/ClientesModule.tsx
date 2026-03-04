@@ -140,8 +140,8 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
     c.nome.toLowerCase().includes(search.toLowerCase()) || c.cpfCnpj.includes(search)
   );
 
-  const getClienteOrdens = (nome: string) => ordens.filter(o => o.clienteNome.toLowerCase() === nome.toLowerCase());
-  const getClienteOrcamentos = (nome: string) => orcamentos.filter(o => o.clienteNome.toLowerCase() === nome.toLowerCase());
+  const getClienteOrdens = (id: string, nome: string) => ordens.filter(o => o.clienteId === id || o.clienteNome.toLowerCase() === nome.toLowerCase());
+  const getClienteOrcamentos = (id: string, nome: string) => orcamentos.filter(o => o.clienteId === id || o.clienteNome.toLowerCase() === nome.toLowerCase());
 
   const statusLabel = (s: string) => {
     if (s === 'concluido') return 'Concluído';
@@ -223,8 +223,8 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
         ) : (
           <div className="space-y-2">
             {filtered.map(c => {
-              const cOrdens = getClienteOrdens(c.nome);
-              const cOrcamentos = getClienteOrcamentos(c.nome);
+              const cOrdens = getClienteOrdens(c.id, c.nome);
+              const cOrcamentos = getClienteOrcamentos(c.id, c.nome);
               const totalHistorico = cOrdens.length + cOrcamentos.length;
               const enderecoCompleto = [c.endereco, c.bairro, c.cidade, c.estado].filter(Boolean).join(', ');
               return (
