@@ -33,7 +33,7 @@ interface Props {
 
 const Index = ({ user, signOut }: Props) => {
   const [activeModule, setActiveModule] = useState<ModuleKey>('home');
-  const { clientes, addCliente, removeCliente } = useClientes();
+  const { clientes, addCliente, updateCliente, removeCliente } = useClientes();
   const { ordens, addOrdem, updateOrdem, removeOrdem } = useOrdensServico();
   const { orcamentos, addOrcamento, updateOrcamento } = useOrcamentos();
   const { recibos, addRecibo } = useRecibos();
@@ -77,13 +77,13 @@ const Index = ({ user, signOut }: Props) => {
         <ServicosModule ordens={ordens} clientes={clientes} addOrdem={addOrdem} updateOrdem={updateOrdem} removeOrdem={removeOrdem} />
       )}
       {activeModule === 'clientes' && (
-        <ClientesModule clientes={clientes} addCliente={addCliente} removeCliente={removeCliente} ordens={ordens} orcamentos={orcamentos} />
+        <ClientesModule clientes={clientes} addCliente={addCliente} updateCliente={updateCliente} removeCliente={removeCliente} ordens={ordens} orcamentos={orcamentos} />
       )}
       {activeModule === 'orcamentos' && (
         <OrcamentosModule orcamentos={orcamentos} clientes={clientes} addOrcamento={addOrcamento} updateOrcamento={updateOrcamento} empresaLogo={config.logo} empresaNome={config.nome} empresaAssinatura={config.assinatura} />
       )}
       {activeModule === 'faturamento' && (
-        <FaturamentoModule recibos={recibos} addRecibo={addRecibo} empresaLogo={config.logo} empresaNome={config.nome} ordens={ordens} orcamentos={orcamentos} custos={custos} />
+        <FaturamentoModule recibos={recibos} addRecibo={addRecibo} empresaLogo={config.logo} empresaNome={config.nome} ordens={ordens} orcamentos={orcamentos} custos={custos} clientes={clientes} />
       )}
       {activeModule === 'custos' && (
         <CustosModule custos={custos} addCusto={addCusto} removeCusto={removeCusto} />

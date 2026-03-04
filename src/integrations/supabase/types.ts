@@ -14,6 +14,253 @@ export type Database = {
   }
   public: {
     Tables: {
+      clientes: {
+        Row: {
+          bairro: string
+          cep: string
+          cidade: string
+          cpf_cnpj: string
+          created_at: string
+          email: string
+          endereco: string
+          estado: string
+          id: string
+          nome: string
+          telefone: string
+          user_id: string
+        }
+        Insert: {
+          bairro?: string
+          cep?: string
+          cidade?: string
+          cpf_cnpj?: string
+          created_at?: string
+          email?: string
+          endereco?: string
+          estado?: string
+          id?: string
+          nome: string
+          telefone?: string
+          user_id: string
+        }
+        Update: {
+          bairro?: string
+          cep?: string
+          cidade?: string
+          cpf_cnpj?: string
+          created_at?: string
+          email?: string
+          endereco?: string
+          estado?: string
+          id?: string
+          nome?: string
+          telefone?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      custos: {
+        Row: {
+          id: string
+          nome: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          id?: string
+          nome: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          id?: string
+          nome?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      empresa_config: {
+        Row: {
+          assinatura: string | null
+          cnpj: string
+          email: string
+          endereco: string
+          id: string
+          logo: string | null
+          nome: string
+          telefone: string
+          user_id: string
+        }
+        Insert: {
+          assinatura?: string | null
+          cnpj?: string
+          email?: string
+          endereco?: string
+          id?: string
+          logo?: string | null
+          nome?: string
+          telefone?: string
+          user_id: string
+        }
+        Update: {
+          assinatura?: string | null
+          cnpj?: string
+          email?: string
+          endereco?: string
+          id?: string
+          logo?: string | null
+          nome?: string
+          telefone?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      orcamento_itens: {
+        Row: {
+          descricao: string
+          id: string
+          orcamento_id: string
+          quantidade: number
+          valor_unitario: number
+        }
+        Insert: {
+          descricao: string
+          id?: string
+          orcamento_id: string
+          quantidade?: number
+          valor_unitario?: number
+        }
+        Update: {
+          descricao?: string
+          id?: string
+          orcamento_id?: string
+          quantidade?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamento_itens_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orcamento_materiais: {
+        Row: {
+          id: string
+          nome: string
+          orcamento_id: string
+          valor: number
+        }
+        Insert: {
+          id?: string
+          nome: string
+          orcamento_id: string
+          valor?: number
+        }
+        Update: {
+          id?: string
+          nome?: string
+          orcamento_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamento_materiais_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orcamentos: {
+        Row: {
+          assinatura: string | null
+          cliente_id: string
+          cliente_nome: string
+          created_at: string
+          id: string
+          mao_de_obra: number
+          observacoes: string
+          status: string
+          user_id: string
+          validade: string
+        }
+        Insert: {
+          assinatura?: string | null
+          cliente_id?: string
+          cliente_nome: string
+          created_at?: string
+          id?: string
+          mao_de_obra?: number
+          observacoes?: string
+          status?: string
+          user_id: string
+          validade?: string
+        }
+        Update: {
+          assinatura?: string | null
+          cliente_id?: string
+          cliente_nome?: string
+          created_at?: string
+          id?: string
+          mao_de_obra?: number
+          observacoes?: string
+          status?: string
+          user_id?: string
+          validade?: string
+        }
+        Relationships: []
+      }
+      ordens_servico: {
+        Row: {
+          cliente_id: string
+          cliente_nome: string
+          codigo: string
+          created_at: string
+          data: string
+          descricao: string
+          foto_antes: string | null
+          foto_depois: string | null
+          id: string
+          status: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          cliente_id?: string
+          cliente_nome: string
+          codigo?: string
+          created_at?: string
+          data: string
+          descricao: string
+          foto_antes?: string | null
+          foto_depois?: string | null
+          id?: string
+          status?: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          cliente_nome?: string
+          codigo?: string
+          created_at?: string
+          data?: string
+          descricao?: string
+          foto_antes?: string | null
+          foto_depois?: string | null
+          id?: string
+          status?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           assinatura: string | null
@@ -71,6 +318,42 @@ export type Database = {
           telefone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      recibos: {
+        Row: {
+          cliente_id: string
+          cliente_nome: string
+          created_at: string
+          descricao: string
+          forma_pagamento: string
+          id: string
+          numero: number
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          cliente_id?: string
+          cliente_nome: string
+          created_at?: string
+          descricao?: string
+          forma_pagamento?: string
+          id?: string
+          numero?: number
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          cliente_nome?: string
+          created_at?: string
+          descricao?: string
+          forma_pagamento?: string
+          id?: string
+          numero?: number
+          user_id?: string
+          valor?: number
         }
         Relationships: []
       }
