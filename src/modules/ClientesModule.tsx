@@ -243,12 +243,6 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
           <div className="flex gap-2">
             {/* Alphabet sidebar */}
             <div className="sticky top-0 flex flex-col items-center gap-0.5 py-1 self-start">
-              <button
-                className={`h-6 w-6 rounded text-[10px] font-bold flex items-center justify-center transition-colors ${activeLetter === null ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}
-                onClick={() => setActiveLetter(null)}
-              >
-                Aa
-              </button>
               {ALPHABET.map(letter => (
                 <button
                   key={letter}
@@ -286,63 +280,65 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
                           const totalHistorico = cOrdens.length + cOrcamentos.length;
                           const enderecoCompleto = [c.endereco, c.bairro, c.cidade, c.estado].filter(Boolean).join(', ');
                           return (
-                            <Card key={c.id}>
-                              <CardContent className="p-3 sm:p-4">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0 flex-1">
-                                    <p className="font-semibold truncate">{c.nome}</p>
-                                    <p className="text-sm text-muted-foreground truncate">{c.telefone} {c.email && `• ${c.email}`}</p>
-                                    {c.cpfCnpj && <p className="text-xs text-muted-foreground">{c.cpfCnpj}</p>}
-                                    {enderecoCompleto && <p className="text-xs text-muted-foreground truncate">📍 {enderecoCompleto}</p>}
-                                  </div>
-                                  <div className="flex gap-1 shrink-0">
-                                    <Button size="sm" variant="ghost" onClick={() => setEditCliente({ ...c })}><Pencil className="h-4 w-4" /></Button>
-                                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeCliente(c.id)}><Trash2 className="h-4 w-4" /></Button>
-                                  </div>
-                                </div>
-                                {totalHistorico > 0 && (
-                                  <Collapsible className="mt-3">
-                                    <CollapsibleTrigger asChild>
-                                      <Button variant="outline" size="sm" className="w-full justify-between">
-                                        <span className="flex items-center gap-2">📋 Histórico ({totalHistorico})</span>
-                                        <ChevronDown className="h-4 w-4" />
-                                      </Button>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent className="mt-2 space-y-2">
-                                      {cOrdens.length > 0 && (
-                                        <div>
-                                          <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><Wrench className="h-3 w-3" /> Serviços ({cOrdens.length})</p>
-                                          <div className="space-y-1">
-                                            {cOrdens.map(os => (
-                                              <div key={os.id} className="flex flex-col gap-1 rounded-md border bg-muted/30 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-                                                <div className="min-w-0"><p className="font-medium truncate">{os.descricao}</p><p className="text-xs text-muted-foreground">{os.data} {os.valor > 0 && `• R$ ${os.valor.toFixed(2)}`}</p></div>
-                                                <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(os.status)}</Badge>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                      {cOrcamentos.length > 0 && (
-                                        <div>
-                                          <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><FileText className="h-3 w-3" /> Orçamentos ({cOrcamentos.length})</p>
-                                          <div className="space-y-1">
-                                            {cOrcamentos.map(orc => {
-                                              const t = orc.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0);
-                                              return (
-                                                <div key={orc.id} className="flex flex-col gap-1 rounded-md border bg-muted/30 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-                                                  <div className="min-w-0"><p className="font-medium truncate">{orc.itens.length} itens</p><p className="text-xs text-muted-foreground">R$ {t.toFixed(2)} • {new Date(orc.criadoEm).toLocaleDateString('pt-BR')}</p></div>
-                                                  <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(orc.status)}</Badge>
+                            <Collapsible key={c.id}>
+                              <CollapsibleTrigger asChild>
+                                <button className="flex w-full items-center justify-between rounded-lg border bg-card px-3 py-2.5 text-left hover:bg-muted/50 transition-colors">
+                                  <span className="font-medium truncate">{c.nome}</span>
+                                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                </button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <Card className="mt-1 border-l-4 border-l-primary">
+                                  <CardContent className="p-3 sm:p-4 space-y-2">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0 flex-1 space-y-1">
+                                        {c.telefone && <p className="text-sm text-muted-foreground">📞 {c.telefone}</p>}
+                                        {c.email && <p className="text-sm text-muted-foreground">✉️ {c.email}</p>}
+                                        {c.cpfCnpj && <p className="text-sm text-muted-foreground">🪪 {c.cpfCnpj}</p>}
+                                        {enderecoCompleto && <p className="text-sm text-muted-foreground truncate">📍 {enderecoCompleto}</p>}
+                                      </div>
+                                      <div className="flex gap-1 shrink-0">
+                                        <Button size="sm" variant="ghost" onClick={() => setEditCliente({ ...c })}><Pencil className="h-4 w-4" /></Button>
+                                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeCliente(c.id)}><Trash2 className="h-4 w-4" /></Button>
+                                      </div>
+                                    </div>
+                                    {totalHistorico > 0 && (
+                                      <div className="space-y-2 pt-2 border-t">
+                                        {cOrdens.length > 0 && (
+                                          <div>
+                                            <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><Wrench className="h-3 w-3" /> Serviços ({cOrdens.length})</p>
+                                            <div className="space-y-1">
+                                              {cOrdens.map(os => (
+                                                <div key={os.id} className="flex flex-col gap-1 rounded-md border bg-muted/30 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+                                                  <div className="min-w-0"><p className="font-medium truncate">{os.descricao}</p><p className="text-xs text-muted-foreground">{os.data} {os.valor > 0 && `• R$ ${os.valor.toFixed(2)}`}</p></div>
+                                                  <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(os.status)}</Badge>
                                                 </div>
-                                              );
-                                            })}
+                                              ))}
+                                            </div>
                                           </div>
-                                        </div>
-                                      )}
-                                    </CollapsibleContent>
-                                  </Collapsible>
-                                )}
-                              </CardContent>
-                            </Card>
+                                        )}
+                                        {cOrcamentos.length > 0 && (
+                                          <div>
+                                            <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-muted-foreground"><FileText className="h-3 w-3" /> Orçamentos ({cOrcamentos.length})</p>
+                                            <div className="space-y-1">
+                                              {cOrcamentos.map(orc => {
+                                                const t = orc.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0);
+                                                return (
+                                                  <div key={orc.id} className="flex flex-col gap-1 rounded-md border bg-muted/30 px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+                                                    <div className="min-w-0"><p className="font-medium truncate">{orc.itens.length} itens</p><p className="text-xs text-muted-foreground">R$ {t.toFixed(2)} • {new Date(orc.criadoEm).toLocaleDateString('pt-BR')}</p></div>
+                                                    <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(orc.status)}</Badge>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              </CollapsibleContent>
+                            </Collapsible>
                           );
                         })}
                       </div>
