@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { OrdemServico } from '@/types';
+import { OrdemServico, Cliente } from '@/types';
+import ClienteAutocomplete from '@/components/ClienteAutocomplete';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,12 +14,13 @@ import { toast } from 'sonner';
 
 interface Props {
   ordens: OrdemServico[];
+  clientes: Cliente[];
   addOrdem: (o: Omit<OrdemServico, 'id' | 'criadoEm' | 'fotoAntes' | 'fotoDepois' | 'status'>) => void;
   updateOrdem: (id: string, updates: Partial<OrdemServico>) => void;
   removeOrdem: (id: string) => void;
 }
 
-export default function ServicosModule({ ordens, addOrdem, updateOrdem, removeOrdem }: Props) {
+export default function ServicosModule({ ordens, clientes, addOrdem, updateOrdem, removeOrdem }: Props) {
   const [clienteNome, setClienteNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
@@ -106,7 +108,11 @@ export default function ServicosModule({ ordens, addOrdem, updateOrdem, removeOr
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium">Cliente</label>
-              <Input value={clienteNome} onChange={e => setClienteNome(e.target.value)} placeholder="Nome do cliente" />
+              <ClienteAutocomplete
+                clientes={clientes}
+                value={clienteNome}
+                onChange={(nome, id) => setClienteNome(nome)}
+              />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Descrição do serviço</label>
