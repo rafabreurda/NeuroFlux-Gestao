@@ -74,13 +74,13 @@ const Index = ({ user, signOut }: Props) => {
   return (
     <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome}>
       {activeModule === 'servicos' && (
-        <ServicosModule ordens={ordens} addOrdem={addOrdem} updateOrdem={updateOrdem} removeOrdem={removeOrdem} />
+        <ServicosModule ordens={ordens} clientes={clientes} addOrdem={addOrdem} updateOrdem={updateOrdem} removeOrdem={removeOrdem} />
       )}
       {activeModule === 'clientes' && (
         <ClientesModule clientes={clientes} addCliente={addCliente} removeCliente={removeCliente} ordens={ordens} orcamentos={orcamentos} />
       )}
       {activeModule === 'orcamentos' && (
-        <OrcamentosModule orcamentos={orcamentos} addOrcamento={addOrcamento} updateOrcamento={updateOrcamento} empresaLogo={config.logo} empresaNome={config.nome} empresaAssinatura={config.assinatura} />
+        <OrcamentosModule orcamentos={orcamentos} clientes={clientes} addOrcamento={addOrcamento} updateOrcamento={updateOrcamento} empresaLogo={config.logo} empresaNome={config.nome} empresaAssinatura={config.assinatura} />
       )}
       {activeModule === 'faturamento' && (
         <FaturamentoModule recibos={recibos} addRecibo={addRecibo} empresaLogo={config.logo} empresaNome={config.nome} ordens={ordens} orcamentos={orcamentos} custos={custos} />

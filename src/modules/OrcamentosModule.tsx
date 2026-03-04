@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Orcamento, OrcamentoItem, OrcamentoMaterial } from '@/types';
+import { Orcamento, OrcamentoItem, OrcamentoMaterial, Cliente } from '@/types';
+import ClienteAutocomplete from '@/components/ClienteAutocomplete';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,7 @@ import { toast } from 'sonner';
 
 interface Props {
   orcamentos: Orcamento[];
+  clientes: Cliente[];
   addOrcamento: (o: Omit<Orcamento, 'id' | 'criadoEm' | 'status' | 'assinatura'>) => void;
   updateOrcamento: (id: string, updates: Partial<Orcamento>) => void;
   empresaLogo: string | null;
@@ -17,7 +19,7 @@ interface Props {
   empresaAssinatura: string | null;
 }
 
-export default function OrcamentosModule({ orcamentos, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura }: Props) {
+export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura }: Props) {
   const [clienteNome, setClienteNome] = useState('');
   const [validade, setValidade] = useState('');
   const [observacoes, setObservacoes] = useState('');
@@ -140,7 +142,11 @@ export default function OrcamentosModule({ orcamentos, addOrcamento, updateOrcam
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-sm font-medium">Cliente</label>
-                <Input value={clienteNome} onChange={e => setClienteNome(e.target.value)} placeholder="Nome do cliente" />
+                <ClienteAutocomplete
+                  clientes={clientes}
+                  value={clienteNome}
+                  onChange={(nome) => setClienteNome(nome)}
+                />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium">Validade</label>
