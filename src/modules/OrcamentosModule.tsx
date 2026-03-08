@@ -100,7 +100,13 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
   const totalItens = itens.reduce((sum, item) => sum + item.quantidade * item.valorUnitario, 0);
   const totalMateriais = materiais.reduce((sum, m) => sum + m.valor, 0);
   const maoDeObraVal = parseFloat(maoDeObra) || 0;
-  const totalGeral = totalItens + totalMateriais + maoDeObraVal;
+  const horasVal = parseFloat(horas) || 0;
+  const diasVal = parseFloat(dias) || 0;
+  const kmVal = parseFloat(km) || 0;
+  const totalHoras = horasVal * valorHora;
+  const totalDias = diasVal * valorDia;
+  const totalKm = kmVal * valorKm;
+  const totalGeral = totalItens + totalMateriais + maoDeObraVal + totalHoras + totalDias + totalKm;
 
   // Cost totals for profit display
   const custoItens = itens.reduce((sum, item) => sum + item.quantidade * item.custoUnitario, 0);
