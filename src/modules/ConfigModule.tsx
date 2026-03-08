@@ -182,6 +182,14 @@ export default function ConfigModule({ config, updateConfig, profile, updateProf
                 <div><Label>Telefone</Label><Input value={config.telefone} onChange={e => updateConfig({ telefone: formatPhone(e.target.value) })} placeholder="(00) 00000-0000" /></div>
                 <div><Label>E-mail</Label><Input value={config.email} onChange={e => updateConfig({ email: e.target.value })} placeholder="contato@empresa.com" /></div>
               </div>
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-semibold mb-3">💰 Valores Padrão (usados nos Orçamentos)</h4>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div><Label>Valor Hora (R$)</Label><Input type="number" step="0.01" value={config.valorHora || ''} onChange={e => updateConfig({ valorHora: parseFloat(e.target.value) || 0 })} placeholder="150,00" /></div>
+                  <div><Label>Valor Dia (R$)</Label><Input type="number" step="0.01" value={config.valorDia || ''} onChange={e => updateConfig({ valorDia: parseFloat(e.target.value) || 0 })} placeholder="1.000,00" /></div>
+                  <div><Label>Valor KM (R$)</Label><Input type="number" step="0.01" value={config.valorKm || ''} onChange={e => updateConfig({ valorKm: parseFloat(e.target.value) || 0 })} placeholder="3,50" /></div>
+                </div>
+              </div>
             </CardContent>
           </Card>
           <Card>
