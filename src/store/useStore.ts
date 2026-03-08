@@ -167,12 +167,12 @@ export function useOrcamentos() {
       // Insert itens and materiais
       if (o.itens.length > 0) {
         await supabase.from('orcamento_itens').insert(
-          o.itens.map(i => ({ orcamento_id: data.id, descricao: i.descricao, quantidade: i.quantidade, valor_unitario: i.valorUnitario }))
+          o.itens.map(i => ({ orcamento_id: data.id, descricao: i.descricao, quantidade: i.quantidade, valor_unitario: i.valorUnitario, unidade: i.unidade, custo_unitario: i.custoUnitario, margem_lucro: i.margemLucro }))
         );
       }
       if (o.materiais.length > 0) {
         await supabase.from('orcamento_materiais').insert(
-          o.materiais.filter(m => m.nome).map(m => ({ orcamento_id: data.id, nome: m.nome, valor: m.valor }))
+          o.materiais.filter(m => m.nome).map(m => ({ orcamento_id: data.id, nome: m.nome, valor: m.valor, unidade: m.unidade, quantidade: m.quantidade, custo_unitario: m.custoUnitario, margem_lucro: m.margemLucro }))
         );
       }
       // Refetch to get complete data
