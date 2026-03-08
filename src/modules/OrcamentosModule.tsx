@@ -42,12 +42,15 @@ interface Props {
   empresaLogo: string | null;
   empresaNome: string;
   empresaAssinatura: string | null;
+  valorHora: number;
+  valorDia: number;
+  valorKm: number;
 }
 
 const emptyItem = (): OrcamentoItem => ({ descricao: '', quantidade: 1, valorUnitario: 0, unidade: 'un.', custoUnitario: 0, margemLucro: 0 });
 const emptyMaterial = (): OrcamentoMaterial => ({ nome: '', valor: 0, unidade: 'un.', quantidade: 1, custoUnitario: 0, margemLucro: 0 });
 
-export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura }: Props) {
+export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura, valorHora, valorDia, valorKm }: Props) {
   const [clienteNome, setClienteNome] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [validade, setValidade] = useState('');
