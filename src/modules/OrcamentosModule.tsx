@@ -6,8 +6,33 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, FileText, Download } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Trash2, FileText, Download, Minus } from 'lucide-react';
 import { toast } from 'sonner';
+
+const UNIDADES = [
+  { value: 'un.', label: 'un.', desc: 'unidades' },
+  { value: 'm²', label: 'm²', desc: 'metros quadrados' },
+  { value: 'km²', label: 'km²', desc: 'quilômetros quadrados' },
+  { value: 'ha', label: 'ha', desc: 'hectares' },
+  { value: 'mm', label: 'mm', desc: 'milímetros' },
+  { value: 'cm', label: 'cm', desc: 'centímetros' },
+  { value: 'm', label: 'm', desc: 'metros (linear)' },
+  { value: 'km', label: 'km', desc: 'quilômetros' },
+  { value: 'mL', label: 'mL', desc: 'mililitros' },
+  { value: 'L', label: 'L', desc: 'litros' },
+  { value: 'm³', label: 'm³', desc: 'metros cúbicos' },
+  { value: 'kg', label: 'kg', desc: 'quilogramas' },
+  { value: 'g', label: 'g', desc: 'gramas' },
+  { value: 'pç', label: 'pç', desc: 'peças' },
+  { value: 'cx', label: 'cx', desc: 'caixas' },
+  { value: 'rolo', label: 'rolo', desc: 'rolos' },
+];
+
+function calcPrecoVenda(custo: number, margem: number): number {
+  return custo * (1 + margem / 100);
+}
 
 interface Props {
   orcamentos: Orcamento[];
@@ -19,31 +44,62 @@ interface Props {
   empresaAssinatura: string | null;
 }
 
+const emptyItem = (): OrcamentoItem => ({ descricao: '', quantidade: 1, valorUnitario: 0, unidade: 'un.', custoUnitario: 0, margemLucro: 0 });
+const emptyMaterial = (): OrcamentoMaterial => ({ nome: '', valor: 0, unidade: 'un.', quantidade: 1, custoUnitario: 0, margemLucro: 0 });
+
 export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura }: Props) {
   const [clienteNome, setClienteNome] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [validade, setValidade] = useState('');
   const [observacoes, setObservacoes] = useState('');
-  const [itens, setItens] = useState<OrcamentoItem[]>([{ descricao: '', quantidade: 1, valorUnitario: 0 }]);
-  const [materiais, setMateriais] = useState<OrcamentoMaterial[]>([{ nome: '', valor: 0 }]);
+  const [itens, setItens] = useState<OrcamentoItem[]>([emptyItem()]);
+  const [materiais, setMateriais] = useState<OrcamentoMaterial[]>([emptyMaterial()]);
   const [maoDeObra, setMaoDeObra] = useState('');
+  const [showUnidadeDialog, setShowUnidadeDialog] = useState<{ type: 'item' | 'material'; index: number } | null>(null);
 
-  const addItem = () => setItens(prev => [...prev, { descricao: '', quantidade: 1, valorUnitario: 0 }]);
+  // Item helpers
+  const addItem = () => setItens(prev => [...prev, emptyItem()]);
   const removeItem = (i: number) => setItens(prev => prev.filter((_, idx) => idx !== i));
-  const updateItem = (i: number, field: keyof OrcamentoItem, value: string | number) => {
-    setItens(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
+  const updateItem = (i: number, updates: Partial<OrcamentoItem>) => {
+    setItens(prev => prev.map((item, idx) => {
+      if (idx !== i) return item;
+      const updated = { ...item, ...updates };
+      // Auto-calculate selling price when cost or margin changes
+      if (updates.custoUnitario !== undefined || updates.margemLucro !== undefined) {
+        updated.valorUnitario = calcPrecoVenda(updated.custoUnitario, updated.margemLucro);
+      }
+      return updated;
+    }));
   };
 
-  const addMaterial = () => setMateriais(prev => [...prev, { nome: '', valor: 0 }]);
+  // Material helpers
+  const addMaterial = () => setMateriais(prev => [...prev, emptyMaterial()]);
   const removeMaterial = (i: number) => setMateriais(prev => prev.filter((_, idx) => idx !== i));
-  const updateMaterial = (i: number, field: keyof OrcamentoMaterial, value: string | number) => {
-    setMateriais(prev => prev.map((m, idx) => idx === i ? { ...m, [field]: value } : m));
+  const updateMaterial = (i: number, updates: Partial<OrcamentoMaterial>) => {
+    setMateriais(prev => prev.map((m, idx) => {
+      if (idx !== i) return m;
+      const updated = { ...m, ...updates };
+      if (updates.custoUnitario !== undefined || updates.margemLucro !== undefined) {
+        const precoVenda = calcPrecoVenda(updated.custoUnitario, updated.margemLucro);
+        updated.valor = precoVenda * updated.quantidade;
+      }
+      if (updates.quantidade !== undefined) {
+        const precoVenda = calcPrecoVenda(updated.custoUnitario, updated.margemLucro);
+        updated.valor = precoVenda * updated.quantidade;
+      }
+      return updated;
+    }));
   };
 
   const totalItens = itens.reduce((sum, item) => sum + item.quantidade * item.valorUnitario, 0);
   const totalMateriais = materiais.reduce((sum, m) => sum + m.valor, 0);
   const maoDeObraVal = parseFloat(maoDeObra) || 0;
   const totalGeral = totalItens + totalMateriais + maoDeObraVal;
+
+  // Cost totals for profit display
+  const custoItens = itens.reduce((sum, item) => sum + item.quantidade * item.custoUnitario, 0);
+  const custoMateriais = materiais.reduce((sum, m) => sum + m.quantidade * m.custoUnitario, 0);
+  const lucroEstimado = totalGeral - custoItens - custoMateriais - maoDeObraVal;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,8 +110,8 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
       maoDeObra: maoDeObraVal, validade, observacoes,
     });
     setClienteNome(''); setValidade(''); setObservacoes(''); setMaoDeObra('');
-    setItens([{ descricao: '', quantidade: 1, valorUnitario: 0 }]);
-    setMateriais([{ nome: '', valor: 0 }]);
+    setItens([emptyItem()]);
+    setMateriais([emptyMaterial()]);
     toast.success('Orçamento criado!');
   };
 
@@ -90,33 +146,27 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
       <p><strong>Cliente:</strong> ${orc.clienteNome}</p>
       <p><strong>Data:</strong> ${new Date(orc.criadoEm).toLocaleDateString('pt-BR')}</p>
       ${orc.validade ? `<p><strong>Validade:</strong> ${orc.validade}</p>` : ''}
-
       <p class="section">Descrição dos Serviços</p>
       <table>
-        <tr><th>Serviço</th><th>Qtd</th><th>Valor Unit.</th><th>Subtotal</th></tr>
-        ${orc.itens.map(i => `<tr><td>${i.descricao}</td><td>${i.quantidade}</td><td>R$ ${i.valorUnitario.toFixed(2)}</td><td>R$ ${(i.quantidade * i.valorUnitario).toFixed(2)}</td></tr>`).join('')}
+        <tr><th>Serviço</th><th>Unid.</th><th>Qtd</th><th>Valor Unit.</th><th>Subtotal</th></tr>
+        ${orc.itens.map(i => `<tr><td>${i.descricao}</td><td>${i.unidade || 'un.'}</td><td>${i.quantidade}</td><td>R$ ${i.valorUnitario.toFixed(2)}</td><td>R$ ${(i.quantidade * i.valorUnitario).toFixed(2)}</td></tr>`).join('')}
       </table>
       <p style="text-align:right"><strong>Subtotal Serviços: R$ ${orcTotalItens.toFixed(2)}</strong></p>
-
       ${(orc.materiais && orc.materiais.length > 0) ? `
         <p class="section">Materiais</p>
         <table>
-          <tr><th>Material</th><th>Valor</th></tr>
-          ${orc.materiais.map(m => `<tr><td>${m.nome}</td><td>R$ ${m.valor.toFixed(2)}</td></tr>`).join('')}
+          <tr><th>Material</th><th>Unid.</th><th>Qtd</th><th>Valor</th></tr>
+          ${orc.materiais.map(m => `<tr><td>${m.nome}</td><td>${m.unidade || 'un.'}</td><td>${m.quantidade || 1}</td><td>R$ ${m.valor.toFixed(2)}</td></tr>`).join('')}
         </table>
         <p style="text-align:right"><strong>Subtotal Materiais: R$ ${orcTotalMat.toFixed(2)}</strong></p>
       ` : ''}
-
       ${(orc.maoDeObra || 0) > 0 ? `
         <p class="section">Mão de Obra</p>
         <p style="text-align:right"><strong>R$ ${orc.maoDeObra.toFixed(2)}</strong></p>
       ` : ''}
-
       <hr style="margin:20px 0"/>
       <p class="total">TOTAL GERAL: R$ ${orcTotal.toFixed(2)}</p>
-
       ${orc.observacoes ? `<p><strong>Observações:</strong> ${orc.observacoes}</p>` : ''}
-
       <div class="signatures">
         <div class="sig-box">
           ${empresaAssinatura ? `<img src="${empresaAssinatura}" class="sig-img"/>` : ''}
@@ -126,7 +176,6 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
           <div class="sig-line">Assinatura do Cliente<br/><small>${orc.clienteNome}</small></div>
         </div>
       </div>
-
       <script>setTimeout(()=>window.print(),500)</script>
       </body></html>
     `);
@@ -157,44 +206,148 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
 
             {/* Itens / Serviços */}
             <div>
-              <label className="mb-2 block text-sm font-medium">Serviços</label>
-              {itens.map((item, i) => (
-                <div key={i} className="mb-2 flex flex-wrap gap-2">
-                  <Input className="flex-1 min-w-[140px]" placeholder="Descrição do serviço" value={item.descricao}
-                    onChange={e => updateItem(i, 'descricao', e.target.value)} />
-                  <Input className="w-20" type="number" placeholder="Qtd" value={item.quantidade}
-                    onChange={e => updateItem(i, 'quantidade', parseInt(e.target.value) || 0)} />
-                  <Input className="w-28" type="number" step="0.01" placeholder="Valor" value={item.valorUnitario}
-                    onChange={e => updateItem(i, 'valorUnitario', parseFloat(e.target.value) || 0)} />
-                  {itens.length > 1 && (
-                    <Button type="button" size="icon" variant="ghost" className="text-destructive" onClick={() => removeItem(i)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-              <Button type="button" size="sm" variant="outline" onClick={addItem}>
+              <label className="mb-2 block text-sm font-semibold">Serviços</label>
+              <div className="space-y-3">
+                {itens.map((item, i) => (
+                  <Card key={i} className="border-border/60">
+                    <CardContent className="p-3 space-y-2">
+                      <Input placeholder="Qual é o serviço?" value={item.descricao}
+                        onChange={e => updateItem(i, { descricao: e.target.value })} />
+                      
+                      <div className="flex items-center gap-2">
+                        <button type="button" className="rounded-md border px-3 py-1.5 text-sm bg-muted hover:bg-muted/80 transition-colors"
+                          onClick={() => setShowUnidadeDialog({ type: 'item', index: i })}>
+                          {item.unidade} <span className="text-muted-foreground text-xs ml-1">▼</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-muted-foreground">Custo unitário</label>
+                          <Input type="number" step="0.01" placeholder="R$ 0,00" value={item.custoUnitario || ''}
+                            onChange={e => updateItem(i, { custoUnitario: parseFloat(e.target.value) || 0 })} />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground">Margem de lucro (%)</label>
+                          <Input type="number" step="0.1" placeholder="0%" value={item.margemLucro || ''}
+                            onChange={e => updateItem(i, { margemLucro: parseFloat(e.target.value) || 0 })} />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-muted-foreground">Preço de venda (por {item.unidade})</label>
+                          <Input type="number" step="0.01" value={item.valorUnitario || ''}
+                            onChange={e => updateItem(i, { valorUnitario: parseFloat(e.target.value) || 0 })}
+                            className="font-medium" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground">Quantidade</label>
+                          <div className="flex items-center gap-1">
+                            <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0"
+                              onClick={() => updateItem(i, { quantidade: Math.max(1, item.quantidade - 1) })}>
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <Input type="number" className="text-center" value={item.quantidade}
+                              onChange={e => updateItem(i, { quantidade: parseInt(e.target.value) || 1 })} />
+                            <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0"
+                              onClick={() => updateItem(i, { quantidade: item.quantidade + 1 })}>
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t">
+                        {itens.length > 1 && (
+                          <Button type="button" size="sm" variant="ghost" className="text-destructive h-8 px-2"
+                            onClick={() => removeItem(i)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <div className="ml-auto text-right">
+                          <span className="text-xs text-muted-foreground">Valor </span>
+                          <span className="font-bold text-primary">R$ {(item.quantidade * item.valorUnitario).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={addItem} className="mt-2">
                 <Plus className="h-4 w-4" /> Adicionar serviço
               </Button>
             </div>
 
             {/* Materiais */}
             <div>
-              <label className="mb-2 block text-sm font-medium">Materiais</label>
-              {materiais.map((m, i) => (
-                <div key={i} className="mb-2 flex flex-wrap gap-2">
-                  <Input className="flex-1 min-w-[140px]" placeholder="Nome do material" value={m.nome}
-                    onChange={e => updateMaterial(i, 'nome', e.target.value)} />
-                  <Input className="w-28" type="number" step="0.01" placeholder="Valor" value={m.valor}
-                    onChange={e => updateMaterial(i, 'valor', parseFloat(e.target.value) || 0)} />
-                  {materiais.length > 1 && (
-                    <Button type="button" size="icon" variant="ghost" className="text-destructive" onClick={() => removeMaterial(i)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-              <Button type="button" size="sm" variant="outline" onClick={addMaterial}>
+              <label className="mb-2 block text-sm font-semibold">Materiais</label>
+              <div className="space-y-3">
+                {materiais.map((m, i) => (
+                  <Card key={i} className="border-border/60">
+                    <CardContent className="p-3 space-y-2">
+                      <Input placeholder="Nome do material" value={m.nome}
+                        onChange={e => updateMaterial(i, { nome: e.target.value })} />
+                      
+                      <div className="flex items-center gap-2">
+                        <button type="button" className="rounded-md border px-3 py-1.5 text-sm bg-muted hover:bg-muted/80 transition-colors"
+                          onClick={() => setShowUnidadeDialog({ type: 'material', index: i })}>
+                          {m.unidade} <span className="text-muted-foreground text-xs ml-1">▼</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-muted-foreground">Custo unitário</label>
+                          <Input type="number" step="0.01" placeholder="R$ 0,00" value={m.custoUnitario || ''}
+                            onChange={e => updateMaterial(i, { custoUnitario: parseFloat(e.target.value) || 0 })} />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground">Margem de lucro (%)</label>
+                          <Input type="number" step="0.1" placeholder="0%" value={m.margemLucro || ''}
+                            onChange={e => updateMaterial(i, { margemLucro: parseFloat(e.target.value) || 0 })} />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-muted-foreground">Preço venda (por {m.unidade})</label>
+                          <span className="block text-sm font-medium pt-1.5">R$ {calcPrecoVenda(m.custoUnitario, m.margemLucro).toFixed(2)}</span>
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground">Quantidade</label>
+                          <div className="flex items-center gap-1">
+                            <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0"
+                              onClick={() => updateMaterial(i, { quantidade: Math.max(1, m.quantidade - 1) })}>
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <Input type="number" className="text-center" value={m.quantidade}
+                              onChange={e => updateMaterial(i, { quantidade: parseInt(e.target.value) || 1 })} />
+                            <Button type="button" size="icon" variant="outline" className="h-9 w-9 shrink-0"
+                              onClick={() => updateMaterial(i, { quantidade: m.quantidade + 1 })}>
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t">
+                        {materiais.length > 1 && (
+                          <Button type="button" size="sm" variant="ghost" className="text-destructive h-8 px-2"
+                            onClick={() => removeMaterial(i)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <div className="ml-auto text-right">
+                          <span className="text-xs text-muted-foreground">Valor </span>
+                          <span className="font-bold text-primary">R$ {m.valor.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={addMaterial} className="mt-2">
                 <Plus className="h-4 w-4" /> Adicionar material
               </Button>
             </div>
@@ -210,7 +363,19 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
               <div className="flex justify-between"><span>Serviços:</span><span>R$ {totalItens.toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Materiais:</span><span>R$ {totalMateriais.toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Mão de Obra:</span><span>R$ {maoDeObraVal.toFixed(2)}</span></div>
-              <div className="flex justify-between border-t pt-1 font-bold"><span>Total Geral:</span><span>R$ {totalGeral.toFixed(2)}</span></div>
+              <div className="flex justify-between border-t pt-1 font-bold text-base"><span>Total Geral:</span><span>R$ {totalGeral.toFixed(2)}</span></div>
+              {(custoItens + custoMateriais) > 0 && (
+                <div className="flex justify-between border-t pt-1 text-xs">
+                  <span className="text-muted-foreground">Custo total:</span>
+                  <span className="text-muted-foreground">R$ {(custoItens + custoMateriais).toFixed(2)}</span>
+                </div>
+              )}
+              {lucroEstimado > 0 && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-green-600 font-medium">Lucro estimado:</span>
+                  <span className="text-green-600 font-medium">R$ {lucroEstimado.toFixed(2)}</span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -218,11 +383,45 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
               <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Condições, prazos..." />
             </div>
 
-            <Button type="submit"><Plus className="h-4 w-4" /> Criar Orçamento</Button>
+            <Button type="submit" className="w-full"><Plus className="h-4 w-4" /> Criar Orçamento</Button>
           </form>
         </CardContent>
       </Card>
 
+      {/* Unidade Selection Dialog */}
+      <Dialog open={!!showUnidadeDialog} onOpenChange={() => setShowUnidadeDialog(null)}>
+        <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Selecione a unidade de medida</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1">
+            {UNIDADES.map(u => (
+              <button key={u.value} type="button"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left hover:bg-muted transition-colors"
+                onClick={() => {
+                  if (showUnidadeDialog) {
+                    if (showUnidadeDialog.type === 'item') {
+                      updateItem(showUnidadeDialog.index, { unidade: u.value });
+                    } else {
+                      updateMaterial(showUnidadeDialog.index, { unidade: u.value });
+                    }
+                  }
+                  setShowUnidadeDialog(null);
+                }}>
+                <div>
+                  <p className="font-semibold">{u.label}</p>
+                  <p className="text-xs text-muted-foreground">{u.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setShowUnidadeDialog(null)}>Cancelar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Orçamentos List */}
       <div>
         <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
           <FileText className="h-5 w-5" /> Orçamentos <Badge variant="secondary">{orcamentos.length}</Badge>

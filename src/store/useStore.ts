@@ -141,9 +141,11 @@ export function useOrcamentos() {
         id: d.id, clienteId: d.cliente_id, clienteNome: d.cliente_nome,
         itens: (d.orcamento_itens || []).map((i: any) => ({
           descricao: i.descricao, quantidade: i.quantidade, valorUnitario: Number(i.valor_unitario),
+          unidade: i.unidade || 'un.', custoUnitario: Number(i.custo_unitario || 0), margemLucro: Number(i.margem_lucro || 0),
         })),
         materiais: (d.orcamento_materiais || []).map((m: any) => ({
           nome: m.nome, valor: Number(m.valor),
+          unidade: m.unidade || 'un.', quantidade: m.quantidade || 1, custoUnitario: Number(m.custo_unitario || 0), margemLucro: Number(m.margem_lucro || 0),
         })),
         maoDeObra: Number(d.mao_de_obra), validade: d.validade, observacoes: d.observacoes,
         status: d.status as Orcamento['status'], assinatura: d.assinatura, criadoEm: d.created_at,
@@ -165,12 +167,12 @@ export function useOrcamentos() {
       // Insert itens and materiais
       if (o.itens.length > 0) {
         await supabase.from('orcamento_itens').insert(
-          o.itens.map(i => ({ orcamento_id: data.id, descricao: i.descricao, quantidade: i.quantidade, valor_unitario: i.valorUnitario }))
+          o.itens.map(i => ({ orcamento_id: data.id, descricao: i.descricao, quantidade: i.quantidade, valor_unitario: i.valorUnitario, unidade: i.unidade, custo_unitario: i.custoUnitario, margem_lucro: i.margemLucro }))
         );
       }
       if (o.materiais.length > 0) {
         await supabase.from('orcamento_materiais').insert(
-          o.materiais.filter(m => m.nome).map(m => ({ orcamento_id: data.id, nome: m.nome, valor: m.valor }))
+          o.materiais.filter(m => m.nome).map(m => ({ orcamento_id: data.id, nome: m.nome, valor: m.valor, unidade: m.unidade, quantidade: m.quantidade, custo_unitario: m.custoUnitario, margem_lucro: m.margemLucro }))
         );
       }
       // Refetch to get complete data

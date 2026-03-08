@@ -44,11 +44,18 @@ export interface OrcamentoItem {
   descricao: string;
   quantidade: number;
   valorUnitario: number;
+  unidade: string;
+  custoUnitario: number;
+  margemLucro: number;
 }
 
 export interface OrcamentoMaterial {
   nome: string;
   valor: number;
+  unidade: string;
+  quantidade: number;
+  custoUnitario: number;
+  margemLucro: number;
 }
 
 export interface Recibo {
