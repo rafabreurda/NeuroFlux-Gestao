@@ -121,7 +121,7 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
       clienteId, clienteNome, itens, materiais: materiais.filter(m => m.nome),
       maoDeObra: maoDeObraVal, validade, observacoes,
     });
-    setClienteNome(''); setValidade(''); setObservacoes(''); setMaoDeObra('');
+    setClienteNome(''); setValidade(''); setObservacoes(''); setMaoDeObra(''); setHoras(''); setDias(''); setKm('');
     setItens([emptyItem()]);
     setMateriais([emptyMaterial()]);
     toast.success('Orçamento criado!');
@@ -364,6 +364,31 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
               </Button>
             </div>
 
+            {/* Hora / Dia / KM */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold">Deslocamento e Tempo</label>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Horas (R$ {valorHora.toFixed(2)}/h)</label>
+                  <Input type="number" step="0.5" value={horas} onChange={e => setHoras(e.target.value)} placeholder="0" />
+                  {horasVal > 0 && <p className="text-xs text-primary mt-1">= R$ {totalHoras.toFixed(2)}</p>}
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Dias (R$ {valorDia.toFixed(2)}/dia)</label>
+                  <Input type="number" step="0.5" value={dias} onChange={e => setDias(e.target.value)} placeholder="0" />
+                  {diasVal > 0 && <p className="text-xs text-primary mt-1">= R$ {totalDias.toFixed(2)}</p>}
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">KM rodado (R$ {valorKm.toFixed(2)}/km)</label>
+                  <Input type="number" step="1" value={km} onChange={e => setKm(e.target.value)} placeholder="0" />
+                  {kmVal > 0 && <p className="text-xs text-primary mt-1">= R$ {totalKm.toFixed(2)}</p>}
+                </div>
+              </div>
+              {(valorHora === 0 && valorDia === 0 && valorKm === 0) && (
+                <p className="text-xs text-muted-foreground mt-1">⚠️ Configure os valores em Configurações → Empresa</p>
+              )}
+            </div>
+
             {/* Mão de obra */}
             <div>
               <label className="mb-1 block text-sm font-medium">Mão de Obra (R$)</label>
@@ -374,6 +399,9 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
             <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
               <div className="flex justify-between"><span>Serviços:</span><span>R$ {totalItens.toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Materiais:</span><span>R$ {totalMateriais.toFixed(2)}</span></div>
+              {totalHoras > 0 && <div className="flex justify-between"><span>Horas ({horasVal}h):</span><span>R$ {totalHoras.toFixed(2)}</span></div>}
+              {totalDias > 0 && <div className="flex justify-between"><span>Dias ({diasVal}d):</span><span>R$ {totalDias.toFixed(2)}</span></div>}
+              {totalKm > 0 && <div className="flex justify-between"><span>KM ({kmVal}km):</span><span>R$ {totalKm.toFixed(2)}</span></div>}
               <div className="flex justify-between"><span>Mão de Obra:</span><span>R$ {maoDeObraVal.toFixed(2)}</span></div>
               <div className="flex justify-between border-t pt-1 font-bold text-base"><span>Total Geral:</span><span>R$ {totalGeral.toFixed(2)}</span></div>
               {(custoItens + custoMateriais) > 0 && (
@@ -384,8 +412,8 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
               )}
               {lucroEstimado > 0 && (
                 <div className="flex justify-between text-xs">
-                  <span className="text-green-600 font-medium">Lucro estimado:</span>
-                  <span className="text-green-600 font-medium">R$ {lucroEstimado.toFixed(2)}</span>
+                  <span className="font-medium" style={{ color: 'hsl(var(--accent))' }}>Lucro estimado:</span>
+                  <span className="font-medium" style={{ color: 'hsl(var(--accent))' }}>R$ {lucroEstimado.toFixed(2)}</span>
                 </div>
               )}
             </div>
