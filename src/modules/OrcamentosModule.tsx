@@ -58,6 +58,9 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
   const [itens, setItens] = useState<OrcamentoItem[]>([emptyItem()]);
   const [materiais, setMateriais] = useState<OrcamentoMaterial[]>([emptyMaterial()]);
   const [maoDeObra, setMaoDeObra] = useState('');
+  const [horas, setHoras] = useState('');
+  const [dias, setDias] = useState('');
+  const [km, setKm] = useState('');
   const [showUnidadeDialog, setShowUnidadeDialog] = useState<{ type: 'item' | 'material'; index: number } | null>(null);
 
   // Item helpers
