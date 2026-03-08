@@ -141,9 +141,11 @@ export function useOrcamentos() {
         id: d.id, clienteId: d.cliente_id, clienteNome: d.cliente_nome,
         itens: (d.orcamento_itens || []).map((i: any) => ({
           descricao: i.descricao, quantidade: i.quantidade, valorUnitario: Number(i.valor_unitario),
+          unidade: i.unidade || 'un.', custoUnitario: Number(i.custo_unitario || 0), margemLucro: Number(i.margem_lucro || 0),
         })),
         materiais: (d.orcamento_materiais || []).map((m: any) => ({
           nome: m.nome, valor: Number(m.valor),
+          unidade: m.unidade || 'un.', quantidade: m.quantidade || 1, custoUnitario: Number(m.custo_unitario || 0), margemLucro: Number(m.margem_lucro || 0),
         })),
         maoDeObra: Number(d.mao_de_obra), validade: d.validade, observacoes: d.observacoes,
         status: d.status as Orcamento['status'], assinatura: d.assinatura, criadoEm: d.created_at,
