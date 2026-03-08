@@ -83,4 +83,7 @@ export interface EmpresaConfig {
   email: string;
   logo: string | null;
   assinatura: string | null;
+  valorHora: number;
+  valorDia: number;
+  valorKm: number;
 }

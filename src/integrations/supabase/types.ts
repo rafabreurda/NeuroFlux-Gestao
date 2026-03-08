@@ -91,6 +91,9 @@ export type Database = {
           nome: string
           telefone: string
           user_id: string
+          valor_dia: number
+          valor_hora: number
+          valor_km: number
         }
         Insert: {
           assinatura?: string | null
@@ -102,6 +105,9 @@ export type Database = {
           nome?: string
           telefone?: string
           user_id: string
+          valor_dia?: number
+          valor_hora?: number
+          valor_km?: number
         }
         Update: {
           assinatura?: string | null
@@ -113,6 +119,9 @@ export type Database = {
           nome?: string
           telefone?: string
           user_id?: string
+          valor_dia?: number
+          valor_hora?: number
+          valor_km?: number
         }
         Relationships: []
       }

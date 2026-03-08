@@ -266,6 +266,7 @@ export function useCustos() {
 export function useEmpresaConfig() {
   const [config, setConfig] = useState<EmpresaConfig>({
     nome: '', cnpj: '', endereco: '', telefone: '', email: '', logo: null, assinatura: null,
+    valorHora: 0, valorDia: 0, valorKm: 0,
   });
 
   const fetch = useCallback(async () => {
@@ -276,6 +277,7 @@ export function useEmpresaConfig() {
       setConfig({
         nome: data.nome, cnpj: data.cnpj, endereco: data.endereco,
         telefone: data.telefone, email: data.email, logo: data.logo, assinatura: data.assinatura,
+        valorHora: Number(data.valor_hora || 0), valorDia: Number(data.valor_dia || 0), valorKm: Number(data.valor_km || 0),
       });
     }
   }, []);
@@ -290,6 +292,7 @@ export function useEmpresaConfig() {
       user_id: userId, nome: newConfig.nome, cnpj: newConfig.cnpj,
       endereco: newConfig.endereco, telefone: newConfig.telefone,
       email: newConfig.email, logo: newConfig.logo, assinatura: newConfig.assinatura,
+      valor_hora: newConfig.valorHora, valor_dia: newConfig.valorDia, valor_km: newConfig.valorKm,
     }, { onConflict: 'user_id' });
     if (error) { toast.error('Erro ao salvar configuração'); console.error(error); return; }
     setConfig(newConfig);

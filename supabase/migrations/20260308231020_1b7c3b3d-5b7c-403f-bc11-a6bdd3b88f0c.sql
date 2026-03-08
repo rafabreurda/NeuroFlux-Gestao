@@ -1,0 +1,4 @@
+ALTER TABLE public.empresa_config 
+  ADD COLUMN IF NOT EXISTS valor_hora numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS valor_dia numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS valor_km numeric NOT NULL DEFAULT 0;
