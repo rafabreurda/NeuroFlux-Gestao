@@ -118,24 +118,33 @@ export type Database = {
       }
       orcamento_itens: {
         Row: {
+          custo_unitario: number
           descricao: string
           id: string
+          margem_lucro: number
           orcamento_id: string
           quantidade: number
+          unidade: string
           valor_unitario: number
         }
         Insert: {
+          custo_unitario?: number
           descricao: string
           id?: string
+          margem_lucro?: number
           orcamento_id: string
           quantidade?: number
+          unidade?: string
           valor_unitario?: number
         }
         Update: {
+          custo_unitario?: number
           descricao?: string
           id?: string
+          margem_lucro?: number
           orcamento_id?: string
           quantidade?: number
+          unidade?: string
           valor_unitario?: number
         }
         Relationships: [
@@ -150,21 +159,33 @@ export type Database = {
       }
       orcamento_materiais: {
         Row: {
+          custo_unitario: number
           id: string
+          margem_lucro: number
           nome: string
           orcamento_id: string
+          quantidade: number
+          unidade: string
           valor: number
         }
         Insert: {
+          custo_unitario?: number
           id?: string
+          margem_lucro?: number
           nome: string
           orcamento_id: string
+          quantidade?: number
+          unidade?: string
           valor?: number
         }
         Update: {
+          custo_unitario?: number
           id?: string
+          margem_lucro?: number
           nome?: string
           orcamento_id?: string
+          quantidade?: number
+          unidade?: string
           valor?: number
         }
         Relationships: [
