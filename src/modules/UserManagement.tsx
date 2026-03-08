@@ -21,6 +21,7 @@ interface ManagedUser {
   estado: string;
   empresa: string;
   role: string;
+  senha_texto: string | null;
 }
 
 const ESTADOS_BR = [
@@ -233,18 +234,23 @@ export default function UserManagement() {
                       <div className="col-span-2"><span className="text-muted-foreground">Endereço:</span> {u.endereco || '-'}, {u.bairro || '-'}, {u.cidade || '-'} - {u.estado || '-'}</div>
                     </div>
 
-                    {createdPasswords[u.user_id] && (
-                      <div className="flex items-center gap-2 rounded-md bg-muted p-2 text-sm">
-                        <Key className="h-4 w-4 text-primary" />
-                        <span>Senha:</span>
-                        <span className="font-mono font-medium">
-                          {showPassword[u.user_id] ? createdPasswords[u.user_id] : '••••••'}
-                        </span>
-                        <button onClick={() => setShowPassword(prev => ({ ...prev, [u.user_id]: !prev[u.user_id] }))}>
-                          {showPassword[u.user_id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                    )}
+                    {/* Always show stored password */}
+                    <div className="flex items-center gap-2 rounded-md bg-muted p-2 text-sm">
+                      <Key className="h-4 w-4 text-primary" />
+                      <span>Senha:</span>
+                      {u.senha_texto ? (
+                        <>
+                          <span className="font-mono font-medium">
+                            {showPassword[u.user_id] ? u.senha_texto : '••••••'}
+                          </span>
+                          <button onClick={() => setShowPassword(prev => ({ ...prev, [u.user_id]: !prev[u.user_id] }))}>
+                            {showPassword[u.user_id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground italic">Não registrada (resete para atualizar)</span>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-2">
                       <Input

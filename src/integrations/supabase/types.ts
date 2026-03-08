@@ -298,6 +298,7 @@ export type Database = {
           id: string
           logo: string | null
           nome: string
+          senha_texto: string | null
           telefone: string | null
           updated_at: string
           user_id: string
@@ -317,6 +318,7 @@ export type Database = {
           id?: string
           logo?: string | null
           nome?: string
+          senha_texto?: string | null
           telefone?: string | null
           updated_at?: string
           user_id: string
@@ -336,6 +338,7 @@ export type Database = {
           id?: string
           logo?: string | null
           nome?: string
+          senha_texto?: string | null
           telefone?: string | null
           updated_at?: string
           user_id?: string
