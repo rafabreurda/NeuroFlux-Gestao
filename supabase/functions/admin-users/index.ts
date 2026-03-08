@@ -80,7 +80,7 @@ serve(async (req) => {
         });
       }
 
-      // Update profile with full data
+      // Update profile with full data + plain password
       await supabaseAdmin.from("profiles").update({
         nome: nome || username,
         cpf: cpf || "",
@@ -91,6 +91,7 @@ serve(async (req) => {
         cidade: cidade || "",
         estado: estado || "",
         empresa: empresa || "",
+        senha_texto: password,
       }).eq("user_id", newUser.user!.id);
 
       // Assign user role
@@ -145,6 +146,8 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      // Update stored plain password
+      await supabaseAdmin.from("profiles").update({ senha_texto: newPassword }).eq("user_id", userId);
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
