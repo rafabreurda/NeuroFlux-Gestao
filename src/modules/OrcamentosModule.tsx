@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, FileText, Download, Minus } from 'lucide-react';
+import { Plus, Trash2, FileText, Download, Minus, Navigation, Map } from 'lucide-react';
 import { toast } from 'sonner';
 
 const UNIDADES = [
@@ -42,6 +42,7 @@ interface Props {
   empresaLogo: string | null;
   empresaNome: string;
   empresaAssinatura: string | null;
+  empresaEndereco: string;
   valorHora: number;
   valorDia: number;
   valorKm: number;
@@ -50,7 +51,7 @@ interface Props {
 const emptyItem = (): OrcamentoItem => ({ descricao: '', quantidade: 1, valorUnitario: 0, unidade: 'un.', custoUnitario: 0, margemLucro: 0 });
 const emptyMaterial = (): OrcamentoMaterial => ({ nome: '', valor: 0, unidade: 'un.', quantidade: 1, custoUnitario: 0, margemLucro: 0 });
 
-export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura, valorHora, valorDia, valorKm }: Props) {
+export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura, empresaEndereco, valorHora, valorDia, valorKm }: Props) {
   const [clienteNome, setClienteNome] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [validade, setValidade] = useState('');
@@ -61,6 +62,7 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
   const [horas, setHoras] = useState('');
   const [dias, setDias] = useState('');
   const [km, setKm] = useState('');
+  const [desconto, setDesconto] = useState('');
   const [showUnidadeDialog, setShowUnidadeDialog] = useState<{ type: 'item' | 'material'; index: number } | null>(null);
 
   // Item helpers
@@ -106,7 +108,9 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
   const totalHoras = horasVal * valorHora;
   const totalDias = diasVal * valorDia;
   const totalKm = kmVal * valorKm;
-  const totalGeral = totalItens + totalMateriais + maoDeObraVal + totalHoras + totalDias + totalKm;
+  const descontoVal = parseFloat(desconto) || 0;
+  const totalDeslocamento = totalHoras + totalDias + totalKm;
+  const totalGeral = totalItens + totalMateriais + maoDeObraVal + totalDeslocamento - descontoVal;
 
   // Cost totals for profit display
   const custoItens = itens.reduce((sum, item) => sum + item.quantidade * item.custoUnitario, 0);
@@ -119,9 +123,11 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
     if (itens.some(i => !i.descricao)) { toast.error('Preencha todos os itens'); return; }
     addOrcamento({
       clienteId, clienteNome, itens, materiais: materiais.filter(m => m.nome),
-      maoDeObra: maoDeObraVal, validade, observacoes,
+      maoDeObra: maoDeObraVal + totalDeslocamento, horas: horasVal, dias: diasVal, km: kmVal,
+      desconto: descontoVal, validade, observacoes,
     });
-    setClienteNome(''); setValidade(''); setObservacoes(''); setMaoDeObra(''); setHoras(''); setDias(''); setKm('');
+    setClienteNome(''); setValidade(''); setObservacoes(''); setMaoDeObra('');
+    setHoras(''); setDias(''); setKm(''); setDesconto('');
     setItens([emptyItem()]);
     setMateriais([emptyMaterial()]);
     toast.success('Orçamento criado!');
@@ -130,7 +136,8 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
   const gerarPDF = (orc: Orcamento) => {
     const orcTotalItens = orc.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0);
     const orcTotalMat = (orc.materiais || []).reduce((s, m) => s + m.valor, 0);
-    const orcTotal = orcTotalItens + orcTotalMat + (orc.maoDeObra || 0);
+    const orcDesconto = orc.desconto || 0;
+    const orcTotal = orcTotalItens + orcTotalMat + (orc.maoDeObra || 0) - orcDesconto;
     const w = window.open('', '_blank');
     if (!w) return;
     w.document.write(`
@@ -175,6 +182,9 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
       ${(orc.maoDeObra || 0) > 0 ? `
         <p class="section">Mão de Obra</p>
         <p style="text-align:right"><strong>R$ ${orc.maoDeObra.toFixed(2)}</strong></p>
+      ` : ''}
+      ${orcDesconto > 0 ? `
+        <p style="text-align:right;color:#e53e3e">Desconto: - R$ ${orcDesconto.toFixed(2)}</p>
       ` : ''}
       <hr style="margin:20px 0"/>
       <p class="total">TOTAL GERAL: R$ ${orcTotal.toFixed(2)}</p>
@@ -384,6 +394,38 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
                   {kmVal > 0 && <p className="text-xs text-primary mt-1">= R$ {totalKm.toFixed(2)}</p>}
                 </div>
               </div>
+
+              {/* Botão Ver Rota */}
+              {(() => {
+                const clienteSelecionado = clientes.find(c => c.id === clienteId);
+                const endCliente = clienteSelecionado
+                  ? [clienteSelecionado.endereco, clienteSelecionado.bairro, clienteSelecionado.cidade, clienteSelecionado.estado]
+                      .filter(Boolean).join(', ')
+                  : '';
+                if (!endCliente) return null;
+                const origem = encodeURIComponent(empresaEndereco || '');
+                const destino = encodeURIComponent(endCliente);
+                return (
+                  <div className="flex gap-2 pt-1">
+                    <p className="text-xs text-muted-foreground self-center">Ver rota até o cliente:</p>
+                    <a
+                      href={`https://waze.com/ul?q=${destino}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/10 text-sky-600 text-xs font-bold hover:bg-sky-500/20 transition-colors"
+                    >
+                      <Navigation size={13} /> Waze
+                    </a>
+                    <a
+                      href={`https://maps.google.com/maps?saddr=${origem}&daddr=${destino}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-bold hover:bg-emerald-500/20 transition-colors"
+                    >
+                      <Map size={13} /> Google Maps
+                    </a>
+                  </div>
+                );
+              })()}
+
               {(valorHora === 0 && valorDia === 0 && valorKm === 0) && (
                 <p className="text-xs text-muted-foreground mt-1">⚠️ Configure os valores em Configurações → Empresa</p>
               )}
@@ -399,10 +441,8 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
             <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
               <div className="flex justify-between"><span>Serviços:</span><span>R$ {totalItens.toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Materiais:</span><span>R$ {totalMateriais.toFixed(2)}</span></div>
-              {totalHoras > 0 && <div className="flex justify-between"><span>Horas ({horasVal}h):</span><span>R$ {totalHoras.toFixed(2)}</span></div>}
-              {totalDias > 0 && <div className="flex justify-between"><span>Dias ({diasVal}d):</span><span>R$ {totalDias.toFixed(2)}</span></div>}
-              {totalKm > 0 && <div className="flex justify-between"><span>KM ({kmVal}km):</span><span>R$ {totalKm.toFixed(2)}</span></div>}
-              <div className="flex justify-between"><span>Mão de Obra:</span><span>R$ {maoDeObraVal.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Mão de Obra:</span><span>R$ {(maoDeObraVal + totalDeslocamento).toFixed(2)}</span></div>
+              {descontoVal > 0 && <div className="flex justify-between text-destructive"><span>Desconto:</span><span>- R$ {descontoVal.toFixed(2)}</span></div>}
               <div className="flex justify-between border-t pt-1 font-bold text-base"><span>Total Geral:</span><span>R$ {totalGeral.toFixed(2)}</span></div>
               {(custoItens + custoMateriais) > 0 && (
                 <div className="flex justify-between border-t pt-1 text-xs">
@@ -416,6 +456,12 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
                   <span className="font-medium" style={{ color: 'hsl(var(--accent))' }}>R$ {lucroEstimado.toFixed(2)}</span>
                 </div>
               )}
+            </div>
+
+            {/* Desconto */}
+            <div>
+              <label className="mb-1 block text-sm font-medium">Desconto (R$)</label>
+              <Input type="number" step="0.01" value={desconto} onChange={e => setDesconto(e.target.value)} placeholder="0,00" />
             </div>
 
             <div>

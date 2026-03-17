@@ -33,6 +33,10 @@ export interface Orcamento {
   itens: OrcamentoItem[];
   materiais: OrcamentoMaterial[];
   maoDeObra: number;
+  horas: number;
+  dias: number;
+  km: number;
+  desconto: number;
   validade: string;
   observacoes: string;
   status: 'pendente' | 'aprovado' | 'recusado';

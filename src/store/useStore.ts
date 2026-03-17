@@ -147,7 +147,8 @@ export function useOrcamentos() {
           nome: m.nome, valor: Number(m.valor),
           unidade: m.unidade || 'un.', quantidade: m.quantidade || 1, custoUnitario: Number(m.custo_unitario || 0), margemLucro: Number(m.margem_lucro || 0),
         })),
-        maoDeObra: Number(d.mao_de_obra), validade: d.validade, observacoes: d.observacoes,
+        maoDeObra: Number(d.mao_de_obra), horas: Number(d.horas || 0), dias: Number(d.dias || 0), km: Number(d.km || 0), desconto: Number(d.desconto || 0),
+        validade: d.validade, observacoes: d.observacoes,
         status: d.status as Orcamento['status'], assinatura: d.assinatura, criadoEm: d.created_at,
       })));
     }
@@ -160,7 +161,8 @@ export function useOrcamentos() {
     if (!userId) return;
     const { data, error } = await supabase.from('orcamentos').insert({
       user_id: userId, cliente_id: o.clienteId, cliente_nome: o.clienteNome,
-      mao_de_obra: o.maoDeObra, validade: o.validade, observacoes: o.observacoes,
+      mao_de_obra: o.maoDeObra, horas: o.horas, dias: o.dias, km: o.km, desconto: o.desconto,
+      validade: o.validade, observacoes: o.observacoes,
     }).select().single();
     if (error) { toast.error('Erro ao criar orçamento'); console.error(error); return; }
     if (data) {

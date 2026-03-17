@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, UserPlus, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, UserPlus, ArrowLeft, Navigation, Map } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCpfCnpj, formatPhone, formatCep } from '@/lib/masks';
 
@@ -206,7 +206,29 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
                 {selectedCliente.email && <p className="text-sm"><span className="font-medium text-muted-foreground">E-mail:</span> {selectedCliente.email}</p>}
                 {selectedCliente.cpfCnpj && <p className="text-sm"><span className="font-medium text-muted-foreground">CPF/CNPJ:</span> {selectedCliente.cpfCnpj}</p>}
                 {selectedCliente.cep && <p className="text-sm"><span className="font-medium text-muted-foreground">CEP:</span> {formatCep(selectedCliente.cep)}</p>}
-                {enderecoCompleto && <p className="text-sm"><span className="font-medium text-muted-foreground">Endereço:</span> {enderecoCompleto}</p>}
+                {enderecoCompleto && (
+                  <div className="space-y-1">
+                    <p className="text-sm"><span className="font-medium text-muted-foreground">Endereço:</span> {enderecoCompleto}</p>
+                    <div className="flex gap-2 pt-1">
+                      <a
+                        href={`https://waze.com/ul?q=${encodeURIComponent(enderecoCompleto)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/10 text-sky-600 text-xs font-bold hover:bg-sky-500/20 transition-colors"
+                      >
+                        <Navigation size={13} /> Waze
+                      </a>
+                      <a
+                        href={`https://maps.google.com/?q=${encodeURIComponent(enderecoCompleto)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-bold hover:bg-emerald-500/20 transition-colors"
+                      >
+                        <Map size={13} /> Google Maps
+                      </a>
+                    </div>
+                  </div>
+                )}
                 {!selectedCliente.telefone && !selectedCliente.email && !selectedCliente.cpfCnpj && !enderecoCompleto && (
                   <p className="text-sm text-muted-foreground text-center py-4">Nenhum dado adicional cadastrado.</p>
                 )}
