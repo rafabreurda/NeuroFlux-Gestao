@@ -48,6 +48,8 @@ interface ManagedUser {
   empresa: string;
   role: string;
   senha_texto: string | null;
+  blocked: boolean;
+  last_seen: string | null;
   planos: Plano[];
   contratos: Contrato[];
 }
