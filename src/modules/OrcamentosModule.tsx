@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Orcamento, OrcamentoItem, OrcamentoMaterial, Cliente } from '@/types';
+import { Orcamento, OrcamentoItem, OrcamentoMaterial, Cliente, ServicoCatalogo } from '@/types';
 import ClienteAutocomplete from '@/components/ClienteAutocomplete';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Trash2, FileText, Download, Minus, Navigation, Map } from 'lucide-react';
+import { Plus, Trash2, FileText, Download, Minus, Navigation, Map, Package } from 'lucide-react';
 import { toast } from 'sonner';
 
 const UNIDADES = [
@@ -45,12 +45,13 @@ interface Props {
   valorHora: number;
   valorDia: number;
   valorKm: number;
+  catalogoServicos: ServicoCatalogo[];
 }
 
 const emptyItem = (): OrcamentoItem => ({ descricao: '', quantidade: 1, valorUnitario: 0, unidade: 'un.', custoUnitario: 0, margemLucro: 0 });
 const emptyMaterial = (): OrcamentoMaterial => ({ nome: '', valor: 0, unidade: 'un.', quantidade: 1, custoUnitario: 0, margemLucro: 0 });
 
-export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura, empresaEndereco, valorHora, valorDia, valorKm }: Props) {
+export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura, empresaEndereco, valorHora, valorDia, valorKm, catalogoServicos }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteId, setClienteId] = useState('');
@@ -323,6 +324,30 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
                 </div>
               );
             })()}
+
+            {/* Catálogo de Serviços */}
+            {catalogoServicos.length > 0 && (
+              <div>
+                <label className="mb-1 block text-sm font-semibold flex items-center gap-1">
+                  <Package className="h-4 w-4 text-primary" /> Adicionar do Catálogo
+                </label>
+                <select
+                  className="w-full rounded border bg-background px-3 py-2 text-sm"
+                  value=""
+                  onChange={e => {
+                    const svc = catalogoServicos.find(s => s.id === e.target.value);
+                    if (svc) {
+                      setItens(prev => [...prev, { descricao: svc.nome, quantidade: 1, valorUnitario: svc.valor, unidade: 'un.', custoUnitario: 0, margemLucro: 0 }]);
+                    }
+                  }}
+                >
+                  <option value="">Escolha um serviço do catálogo...</option>
+                  {catalogoServicos.map(s => (
+                    <option key={s.id} value={s.id}>{s.nome} — R$ {s.valor.toFixed(2)}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Itens / Serviços */}
             <div>

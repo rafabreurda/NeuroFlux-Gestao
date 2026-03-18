@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Cliente, OrdemServico, Orcamento } from '@/types';
+import { Cliente, OrdemServico, Orcamento, ServicoCatalogo } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, ArrowLeft, Navigation, Map, PlusCircle, RefreshCw, PhoneCall } from 'lucide-react';
+import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, ArrowLeft, Navigation, Map, PlusCircle, RefreshCw, PhoneCall, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCpfCnpj, formatPhone, formatCep } from '@/lib/masks';
 
@@ -19,6 +19,8 @@ interface Props {
   ordens: OrdemServico[];
   orcamentos: Orcamento[];
   addOrdem: (o: Omit<OrdemServico, 'id' | 'criadoEm' | 'fotoAntes' | 'fotoDepois' | 'status'>) => void;
+  addOrcamento: (o: Omit<Orcamento, 'id' | 'criadoEm' | 'status' | 'assinatura'>) => void;
+  catalogoServicos: ServicoCatalogo[];
 }
 
 interface ContactInfo {
@@ -81,7 +83,7 @@ async function fetchCep(cep: string) {
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-export default function ClientesModule({ clientes, addCliente, updateCliente, removeCliente, ordens, orcamentos, addOrdem }: Props) {
+export default function ClientesModule({ clientes, addCliente, updateCliente, removeCliente, ordens, orcamentos, addOrdem, addOrcamento, catalogoServicos }: Props) {
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [email, setEmail] = useState('');
@@ -97,6 +99,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
   const [activeLetter, setActiveLetter] = useState<string | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [showNovoServico, setShowNovoServico] = useState(false);
+  const [showNovoOrcamento, setShowNovoOrcamento] = useState(false);
   const [osDescricao, setOsDescricao] = useState('');
   const [osData, setOsData] = useState(new Date().toISOString().split('T')[0]);
   const [osValor, setOsValor] = useState('');
@@ -283,6 +286,32 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
           <Card className="border-primary/40 bg-primary/5">
             <CardContent className="p-4 space-y-3">
               <h4 className="font-semibold flex items-center gap-2"><Wrench className="h-4 w-4 text-primary" /> Nova OS — {selectedCliente.nome}</h4>
+              {catalogoServicos.length > 0 && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium flex items-center gap-1">
+                    <Package className="h-4 w-4 text-primary" /> Selecionar do Catálogo
+                  </label>
+                  <select
+                    className="w-full rounded border bg-background px-3 py-2 text-sm"
+                    value=""
+                    onChange={e => {
+                      const svc = catalogoServicos.find(s => s.id === e.target.value);
+                      if (svc) {
+                        setOsDescricao(prev => prev ? `${prev}\n${svc.nome}` : svc.nome);
+                        setOsValor(prev => {
+                          const current = parseFloat(prev) || 0;
+                          return (current + svc.valor).toFixed(2);
+                        });
+                      }
+                    }}
+                  >
+                    <option value="">Escolha um serviço...</option>
+                    {catalogoServicos.map(s => (
+                      <option key={s.id} value={s.id}>{s.nome} — R$ {s.valor.toFixed(2)}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="mb-1 block text-sm font-medium">Descrição do serviço</label>
                 <Textarea value={osDescricao} onChange={e => setOsDescricao(e.target.value)} placeholder="Detalhe o serviço..." />
@@ -396,13 +425,82 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
           </TabsContent>
         </Tabs>
 
-        {/* Floating "Novo Serviço" button in detail view */}
-        <button
-          onClick={() => { setShowNovoServico(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-          className="fixed bottom-20 right-4 z-50 flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-primary-foreground shadow-lg font-semibold transition-transform active:scale-95 hover:scale-105 lg:bottom-8 lg:right-8"
-        >
-          <PlusCircle className="h-5 w-5" /> Novo Serviço
-        </button>
+        {/* Novo Orçamento inline form */}
+        {showNovoOrcamento && (
+          <Card className="border-primary/40 bg-primary/5">
+            <CardContent className="p-4 space-y-3">
+              <h4 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Novo Orçamento — {selectedCliente.nome}</h4>
+              {catalogoServicos.length > 0 && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium flex items-center gap-1">
+                    <Package className="h-4 w-4 text-primary" /> Adicionar do Catálogo
+                  </label>
+                  <select
+                    className="w-full rounded border bg-background px-3 py-2 text-sm"
+                    value=""
+                    onChange={e => {
+                      const svc = catalogoServicos.find(s => s.id === e.target.value);
+                      if (svc) {
+                        setOsDescricao(prev => prev ? `${prev}\n${svc.nome}` : svc.nome);
+                        setOsValor(prev => {
+                          const current = parseFloat(prev) || 0;
+                          return (current + svc.valor).toFixed(2);
+                        });
+                      }
+                    }}
+                  >
+                    <option value="">Escolha um serviço...</option>
+                    {catalogoServicos.map(s => (
+                      <option key={s.id} value={s.id}>{s.nome} — R$ {s.valor.toFixed(2)}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="mb-1 block text-sm font-medium">Descrição / Observações</label>
+                <Textarea value={osDescricao} onChange={e => setOsDescricao(e.target.value)} placeholder="Descreva os serviços..." />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Valor Total (R$)</label>
+                  <Input type="number" step="0.01" value={osValor} onChange={e => setOsValor(e.target.value)} placeholder="0,00" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => {
+                  if (!osDescricao && !osValor) { toast.error('Preencha pelo menos descrição ou valor'); return; }
+                  addOrcamento({
+                    clienteId: selectedCliente.id, clienteNome: selectedCliente.nome,
+                    itens: [{ descricao: osDescricao || 'Serviço', quantidade: 1, valorUnitario: parseFloat(osValor) || 0, unidade: 'un.', custoUnitario: 0, margemLucro: 0 }],
+                    materiais: [], maoDeObra: 0, horas: 0, dias: 0, km: 0, desconto: 0,
+                    validade: '', observacoes: '',
+                  });
+                  setOsDescricao(''); setOsValor(''); setShowNovoOrcamento(false);
+                  toast.success('Orçamento criado!');
+                }}>
+                  <Plus className="h-4 w-4" /> Salvar Orçamento
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { setShowNovoOrcamento(false); setOsDescricao(''); setOsValor(''); }}>Cancelar</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Floating action buttons */}
+        <div className="fixed bottom-20 right-4 z-50 flex flex-col gap-2 lg:bottom-8 lg:right-8">
+          <button
+            onClick={() => { setShowNovoOrcamento(true); setShowNovoServico(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            className="flex items-center gap-2 rounded-full bg-accent px-4 py-2.5 text-accent-foreground shadow-lg font-semibold transition-transform active:scale-95 hover:scale-105 text-sm"
+          >
+            <FileText className="h-4 w-4" /> Orçamento
+          </button>
+          <button
+            onClick={() => { setShowNovoServico(true); setShowNovoOrcamento(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            className="flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-primary-foreground shadow-lg font-semibold transition-transform active:scale-95 hover:scale-105 text-sm"
+          >
+            <PlusCircle className="h-4 w-4" /> Serviço
+          </button>
+        </div>
 
         {/* Edit Dialog */}
         <Dialog open={!!editCliente} onOpenChange={() => setEditCliente(null)}>
