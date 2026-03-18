@@ -99,6 +99,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
   const [activeLetter, setActiveLetter] = useState<string | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [showNovoServico, setShowNovoServico] = useState(false);
+  const [showNovoOrcamento, setShowNovoOrcamento] = useState(false);
   const [osDescricao, setOsDescricao] = useState('');
   const [osData, setOsData] = useState(new Date().toISOString().split('T')[0]);
   const [osValor, setOsValor] = useState('');
