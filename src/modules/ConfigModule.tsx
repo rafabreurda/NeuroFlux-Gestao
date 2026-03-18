@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Settings, Upload, Trash2, PenTool, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import UserManagement from './UserManagement';
+import { formatCpfCnpj, formatPhone } from '@/lib/masks';
 import { formatCpfCnpj, formatPhone } from '@/lib/masks';
 
 interface Props {
