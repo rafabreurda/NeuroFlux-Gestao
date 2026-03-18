@@ -350,6 +350,8 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </>
+      )}
     </div>
   );
 }
