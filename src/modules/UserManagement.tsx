@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,10 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import {
   UserPlus, Users, Trash2, Key, Eye, EyeOff, ChevronDown, ChevronUp,
   CreditCard, FileText, Upload, Download, AlertTriangle, Plus, CalendarIcon,
-  BarChart3, DollarSign, TrendingUp, Ban, CheckCircle, Clock,
+  Ban, CheckCircle, Clock,
 } from 'lucide-react';
 import { formatCpfCnpj, formatPhone } from '@/lib/masks';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface Plano {
   id: string;
