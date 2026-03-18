@@ -7,6 +7,7 @@ import OrcamentosModule from '@/modules/OrcamentosModule';
 import FaturamentoModule from '@/modules/FaturamentoModule';
 import CustosModule from '@/modules/CustosModule';
 import ConfigModule from '@/modules/ConfigModule';
+import UserManagement from '@/modules/UserManagement';
 import {
   useClientes, useOrdensServico, useOrcamentos,
   useRecibos, useCustos, useEmpresaConfig, useServicosCatalogo
@@ -14,7 +15,7 @@ import {
 import { useProfile } from '@/hooks/useProfile';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useScheduleNotifications } from '@/hooks/useScheduleNotifications';
-import { Users, Wrench, FileText, Handshake, DollarSign, Settings, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { Users, Wrench, FileText, Handshake, DollarSign, Settings, LayoutDashboard } from 'lucide-react';
 
 type ModuleKey = 'home' | 'servicos' | 'orcamentos' | 'clientes' | 'faturamento' | 'custos' | 'config';
 
@@ -49,6 +50,7 @@ const Index = ({ user, signOut }: Props) => {
   const { profile, updateProfile } = useProfile(user?.id);
   const { isAdmin } = useUserRole(user?.id);
   useScheduleNotifications(ordens);
+
   if (activeModule === 'home') {
     return (
       <div className="flex min-h-screen flex-col bg-background">
@@ -78,8 +80,18 @@ const Index = ({ user, signOut }: Props) => {
     );
   }
 
+  // Admin routes: config = user management, faturamento = financial dashboard
+  if (isAdmin) {
+    return (
+      <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome} isAdmin>
+        {activeModule === 'config' && <UserManagement initialTab="usuarios" />}
+        {activeModule === 'faturamento' && <UserManagement initialTab="dashboard" />}
+      </AppLayout>
+    );
+  }
+
   return (
-    <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome} isAdmin={isAdmin}>
+    <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome}>
       {activeModule === 'servicos' && (
         <ServicosModule ordens={ordens} clientes={clientes} orcamentos={orcamentos} catalogoServicos={catalogoServicos} addServicoCatalogo={addServicoCatalogo} removeServicoCatalogo={removeServicoCatalogo} updateServicoCatalogo={updateServicoCatalogo} addOrdem={addOrdem} updateOrdem={updateOrdem} removeOrdem={removeOrdem} />
       )}
@@ -96,7 +108,7 @@ const Index = ({ user, signOut }: Props) => {
         <CustosModule custos={custos} addCusto={addCusto} removeCusto={removeCusto} />
       )}
       {activeModule === 'config' && (
-        <ConfigModule config={config} updateConfig={updateConfig} profile={profile} updateProfile={updateProfile} isAdmin={isAdmin} />
+        <ConfigModule config={config} updateConfig={updateConfig} profile={profile} updateProfile={updateProfile} />
       )}
     </AppLayout>
   );
