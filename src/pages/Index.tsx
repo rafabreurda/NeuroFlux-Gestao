@@ -8,6 +8,7 @@ import FaturamentoModule from '@/modules/FaturamentoModule';
 import CustosModule from '@/modules/CustosModule';
 import ConfigModule from '@/modules/ConfigModule';
 import UserManagement from '@/modules/UserManagement';
+import AdminDashboard from '@/modules/AdminDashboard';
 import {
   useClientes, useOrdensServico, useOrcamentos,
   useRecibos, useCustos, useEmpresaConfig, useServicosCatalogo
@@ -84,8 +85,8 @@ const Index = ({ user, signOut }: Props) => {
   if (isAdmin) {
     return (
       <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome} isAdmin>
-        {activeModule === 'config' && <UserManagement initialTab="usuarios" />}
-        {activeModule === 'faturamento' && <UserManagement initialTab="dashboard" />}
+        {activeModule === 'config' && <UserManagement />}
+        {activeModule === 'faturamento' && <AdminDashboard />}
       </AppLayout>
     );
   }
