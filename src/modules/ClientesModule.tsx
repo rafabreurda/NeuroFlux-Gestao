@@ -19,6 +19,8 @@ interface Props {
   ordens: OrdemServico[];
   orcamentos: Orcamento[];
   addOrdem: (o: Omit<OrdemServico, 'id' | 'criadoEm' | 'fotoAntes' | 'fotoDepois' | 'status'>) => void;
+  addOrcamento: (o: Omit<Orcamento, 'id' | 'criadoEm' | 'status' | 'assinatura'>) => void;
+  catalogoServicos: ServicoCatalogo[];
 }
 
 interface ContactInfo {
