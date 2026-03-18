@@ -135,7 +135,7 @@ export default function ConfigModule({ config, updateConfig, profile, updateProf
           <TabsTrigger value="perfil" className="flex-1"><User className="mr-1 h-4 w-4" /> Perfil</TabsTrigger>
           <TabsTrigger value="empresa" className="flex-1"><Settings className="mr-1 h-4 w-4" /> Empresa</TabsTrigger>
           <TabsTrigger value="assinatura" className="flex-1"><PenTool className="mr-1 h-4 w-4" /> Assinatura</TabsTrigger>
-          {isAdmin && <TabsTrigger value="usuarios" className="flex-1"><Users className="mr-1 h-4 w-4" /> Usuários</TabsTrigger>}
+          
         </TabsList>
 
         <TabsContent value="perfil" className="space-y-4 mt-4">
