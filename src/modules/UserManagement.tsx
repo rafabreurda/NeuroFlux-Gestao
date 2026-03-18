@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   UserPlus, Users, Trash2, Key, Eye, EyeOff, ChevronDown, ChevronUp,
   CreditCard, FileText, Upload, Download, AlertTriangle, Plus, CalendarIcon,
-  BarChart3, DollarSign, TrendingUp,
+  BarChart3, DollarSign, TrendingUp, Ban, CheckCircle, Clock,
 } from 'lucide-react';
 import { formatCpfCnpj, formatPhone } from '@/lib/masks';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
