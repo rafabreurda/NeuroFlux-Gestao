@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Cliente, OrdemServico, Orcamento, Recibo, CustoFixo, EmpresaConfig } from '@/types';
+import { Cliente, OrdemServico, Orcamento, Recibo, CustoFixo, EmpresaConfig, ServicoCatalogo } from '@/types';
 import { toast } from 'sonner';
 
 // Helper to get current user id
