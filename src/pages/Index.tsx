@@ -13,6 +13,7 @@ import {
 } from '@/store/useStore';
 import { useProfile } from '@/hooks/useProfile';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useScheduleNotifications } from '@/hooks/useScheduleNotifications';
 import { Users, Wrench, FileText, Handshake, DollarSign, Settings } from 'lucide-react';
 
 type ModuleKey = 'home' | 'servicos' | 'orcamentos' | 'clientes' | 'faturamento' | 'custos' | 'config';

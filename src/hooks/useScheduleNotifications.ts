@@ -65,7 +65,6 @@ function sendNotification(os: OrdemServico) {
         body,
         icon: '/pwa-192x192.png',
         tag: `os-${os.id}`,
-        vibrate: [200, 100, 200],
       });
     } catch {
       // Notification constructor may fail on some mobile browsers
