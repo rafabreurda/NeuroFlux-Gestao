@@ -29,8 +29,8 @@ const userModules: { key: ModuleKey; label: string; icon: React.ReactNode }[] = 
 
 const adminModules: { key: ModuleKey; label: string; icon: React.ReactNode }[] = [
   { key: 'home', label: 'Início', icon: <Home className="h-5 w-5" /> },
-  { key: 'config', label: 'Gestão de Usuários', icon: <ShieldCheck className="h-5 w-5" /> },
-  { key: 'faturamento', label: 'Dashboard Financeiro', icon: <LayoutDashboard className="h-5 w-5" /> },
+  { key: 'config', label: 'Clientes', icon: <Users className="h-5 w-5" /> },
+  { key: 'faturamento', label: 'Financeiro', icon: <LayoutDashboard className="h-5 w-5" /> },
 ];
 
 export default function AppLayout({ activeModule, onModuleChange, children, signOut, userName, isAdmin }: Props) {

@@ -28,8 +28,8 @@ const userMenuItems: { key: Exclude<ModuleKey, 'home'>; label: string; icon: Rea
 ];
 
 const adminMenuItems: { key: Exclude<ModuleKey, 'home'>; label: string; icon: React.ReactNode; color: string }[] = [
-  { key: 'config', label: 'Gestão de Usuários', icon: <ShieldCheck className="h-8 w-8" />, color: 'from-indigo-500 to-indigo-700' },
-  { key: 'faturamento', label: 'Dashboard Financeiro', icon: <LayoutDashboard className="h-8 w-8" />, color: 'from-rose-500 to-rose-700' },
+  { key: 'config', label: 'Clientes', icon: <Users className="h-8 w-8" />, color: 'from-blue-500 to-blue-700' },
+  { key: 'faturamento', label: 'Financeiro', icon: <LayoutDashboard className="h-8 w-8" />, color: 'from-rose-500 to-rose-700' },
 ];
 
 interface Props {
