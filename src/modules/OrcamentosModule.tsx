@@ -325,10 +325,33 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
               );
             })()}
 
+            {/* Catálogo de Serviços */}
+            {catalogoServicos.length > 0 && (
+              <div>
+                <label className="mb-1 block text-sm font-semibold flex items-center gap-1">
+                  <Package className="h-4 w-4 text-primary" /> Adicionar do Catálogo
+                </label>
+                <select
+                  className="w-full rounded border bg-background px-3 py-2 text-sm"
+                  value=""
+                  onChange={e => {
+                    const svc = catalogoServicos.find(s => s.id === e.target.value);
+                    if (svc) {
+                      setItens(prev => [...prev, { descricao: svc.nome, quantidade: 1, valorUnitario: svc.valor, unidade: 'un.', custoUnitario: 0, margemLucro: 0 }]);
+                    }
+                  }}
+                >
+                  <option value="">Escolha um serviço do catálogo...</option>
+                  {catalogoServicos.map(s => (
+                    <option key={s.id} value={s.id}>{s.nome} — R$ {s.valor.toFixed(2)}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Itens / Serviços */}
             <div>
               <label className="mb-2 block text-sm font-semibold">Serviços</label>
-              <div className="space-y-3">
                 {itens.map((item, i) => (
                   <Card key={i} className="border-border/60">
                     <CardContent className="p-3 space-y-2">
