@@ -265,10 +265,13 @@ export type Database = {
           codigo: string
           created_at: string
           data: string
+          data_agendamento: string | null
           descricao: string
+          duracao_horas: number | null
           foto_antes: string | null
           foto_depois: string | null
           id: string
+          materiais_json: Json | null
           status: string
           user_id: string
           valor: number
@@ -279,10 +282,13 @@ export type Database = {
           codigo?: string
           created_at?: string
           data: string
+          data_agendamento?: string | null
           descricao: string
+          duracao_horas?: number | null
           foto_antes?: string | null
           foto_depois?: string | null
           id?: string
+          materiais_json?: Json | null
           status?: string
           user_id: string
           valor?: number
@@ -293,10 +299,13 @@ export type Database = {
           codigo?: string
           created_at?: string
           data?: string
+          data_agendamento?: string | null
           descricao?: string
+          duracao_horas?: number | null
           foto_antes?: string | null
           foto_depois?: string | null
           id?: string
+          materiais_json?: Json | null
           status?: string
           user_id?: string
           valor?: number
