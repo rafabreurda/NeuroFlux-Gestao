@@ -59,6 +59,30 @@ export type Database = {
         }
         Relationships: []
       }
+      contratos_usuarios: {
+        Row: {
+          created_at: string
+          id: string
+          nome_arquivo: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome_arquivo: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome_arquivo?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       custos: {
         Row: {
           id: string
@@ -307,6 +331,39 @@ export type Database = {
           id?: string
           materiais_json?: Json | null
           status?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      planos_usuarios: {
+        Row: {
+          created_at: string
+          data_inicio: string
+          data_vencimento: string
+          id: string
+          nome_plano: string
+          observacoes: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data_inicio?: string
+          data_vencimento?: string
+          id?: string
+          nome_plano?: string
+          observacoes?: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          data_inicio?: string
+          data_vencimento?: string
+          id?: string
+          nome_plano?: string
+          observacoes?: string
           user_id?: string
           valor?: number
         }
