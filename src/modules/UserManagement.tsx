@@ -136,6 +136,32 @@ export default function UserManagement() {
     else { toast.error(res.data?.error || 'Erro ao excluir'); }
   };
 
+  const handleToggleBlock = async (userId: string, currentlyBlocked: boolean) => {
+    const action = currentlyBlocked ? 'unblock-user' : 'block-user';
+    const res = await supabase.functions.invoke('admin-users', { body: { action, userId } });
+    if (res.data?.success) {
+      toast.success(currentlyBlocked ? 'Usuário desbloqueado!' : 'Usuário bloqueado!');
+      fetchUsers();
+    } else {
+      toast.error(res.data?.error || 'Erro');
+    }
+  };
+
+  const formatLastSeen = (lastSeen: string | null) => {
+    if (!lastSeen) return 'Nunca';
+    const date = new Date(lastSeen);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Agora';
+    if (diffMin < 60) return `${diffMin}min atrás`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `${diffH}h atrás`;
+    const diffD = Math.floor(diffH / 24);
+    if (diffD < 7) return `${diffD}d atrás`;
+    return date.toLocaleDateString('pt-BR');
+  };
+
   const handleAddPlano = async (userId: string) => {
     const pf = planoForm[userId];
     if (!pf?.nomePlano || !pf?.dataVencimento) { toast.error('Preencha o nome do plano e a data de vencimento'); return; }
