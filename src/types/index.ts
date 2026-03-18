@@ -12,6 +12,13 @@ export interface Cliente {
   criadoEm: string;
 }
 
+export interface OSMaterial {
+  nome: string;
+  quantidade: number;
+  unidade: string;
+  valor: number;
+}
+
 export interface OrdemServico {
   id: string;
   clienteId: string;
@@ -23,6 +30,9 @@ export interface OrdemServico {
   fotoAntes: string | null;
   fotoDepois: string | null;
   valor: number;
+  materiais: OSMaterial[];
+  duracaoHoras: number;
+  dataAgendamento: string | null;
   criadoEm: string;
 }
 
