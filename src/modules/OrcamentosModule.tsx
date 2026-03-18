@@ -352,6 +352,7 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
             {/* Itens / Serviços */}
             <div>
               <label className="mb-2 block text-sm font-semibold">Serviços</label>
+              <div className="space-y-3">
                 {itens.map((item, i) => (
                   <Card key={i} className="border-border/60">
                     <CardContent className="p-3 space-y-2">
