@@ -224,11 +224,6 @@ export default function ConfigModule({ config, updateConfig, profile, updateProf
           </Card>
         </TabsContent>
 
-        {isAdmin && (
-          <TabsContent value="usuarios" className="mt-4">
-            <UserManagement />
-          </TabsContent>
-        )}
       </Tabs>
     </div>
   );
