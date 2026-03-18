@@ -58,7 +58,7 @@ const Index = ({ user, signOut }: Props) => {
           {isAdmin && <span className="mt-1 rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">Administrador</span>}
         </div>
         <div className="mx-auto grid w-full max-w-lg grid-cols-2 gap-3 px-4 pb-24 sm:grid-cols-3 sm:gap-4">
-          {menuItems.map(item => (
+          {(isAdmin ? adminMenuItems : userMenuItems).map(item => (
             <button
               key={item.key}
               onClick={() => setActiveModule(item.key)}
