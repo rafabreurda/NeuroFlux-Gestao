@@ -213,7 +213,11 @@ export type Database = {
           cliente_id: string
           cliente_nome: string
           created_at: string
+          desconto: number | null
+          dias: number | null
+          horas: number | null
           id: string
+          km: number | null
           mao_de_obra: number
           observacoes: string
           status: string
@@ -225,7 +229,11 @@ export type Database = {
           cliente_id?: string
           cliente_nome: string
           created_at?: string
+          desconto?: number | null
+          dias?: number | null
+          horas?: number | null
           id?: string
+          km?: number | null
           mao_de_obra?: number
           observacoes?: string
           status?: string
@@ -237,7 +245,11 @@ export type Database = {
           cliente_id?: string
           cliente_nome?: string
           created_at?: string
+          desconto?: number | null
+          dias?: number | null
+          horas?: number | null
           id?: string
+          km?: number | null
           mao_de_obra?: number
           observacoes?: string
           status?: string
