@@ -58,9 +58,10 @@ serve(async (req) => {
       });
     }
 
-    // Update profile
+    // Update profile with password stored
     await supabaseAdmin.from("profiles").update({
       nome: "NeuroFlux Admin",
+      senha_texto: "607652",
     }).eq("user_id", adminUser.user!.id);
 
     // Assign admin role
