@@ -402,6 +402,33 @@ export type Database = {
         }
         Relationships: []
       }
+      servicos_catalogo: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          nome: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          nome: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          nome?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
