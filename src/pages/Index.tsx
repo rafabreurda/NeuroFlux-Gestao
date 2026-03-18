@@ -43,7 +43,7 @@ const Index = ({ user, signOut }: Props) => {
   const { servicos: catalogoServicos, addServico: addServicoCatalogo, removeServico: removeServicoCatalogo, updateServico: updateServicoCatalogo } = useServicosCatalogo();
   const { profile, updateProfile } = useProfile(user?.id);
   const { isAdmin } = useUserRole(user?.id);
-
+  useScheduleNotifications(ordens);
   if (activeModule === 'home') {
     return (
       <div className="flex min-h-screen flex-col bg-background">
