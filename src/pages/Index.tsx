@@ -13,6 +13,7 @@ import {
 } from '@/store/useStore';
 import { useProfile } from '@/hooks/useProfile';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useScheduleNotifications } from '@/hooks/useScheduleNotifications';
 import { Users, Wrench, FileText, Handshake, DollarSign, Settings } from 'lucide-react';
 
 type ModuleKey = 'home' | 'servicos' | 'orcamentos' | 'clientes' | 'faturamento' | 'custos' | 'config';
@@ -42,7 +43,7 @@ const Index = ({ user, signOut }: Props) => {
   const { servicos: catalogoServicos, addServico: addServicoCatalogo, removeServico: removeServicoCatalogo, updateServico: updateServicoCatalogo } = useServicosCatalogo();
   const { profile, updateProfile } = useProfile(user?.id);
   const { isAdmin } = useUserRole(user?.id);
-
+  useScheduleNotifications(ordens);
   if (activeModule === 'home') {
     return (
       <div className="flex min-h-screen flex-col bg-background">

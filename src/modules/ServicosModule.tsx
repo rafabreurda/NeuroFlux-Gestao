@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { OrdemServico, Cliente, Orcamento, ServicoCatalogo } from '@/types';
+import { OrdemServico, OSMaterial, Cliente, Orcamento, ServicoCatalogo } from '@/types';
 import ClienteAutocomplete from '@/components/ClienteAutocomplete';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
-import { Camera, Plus, Trash2, Eye, ImageIcon, FileText, Package, List } from 'lucide-react';
+import { Camera, Plus, Trash2, Eye, ImageIcon, FileText, Package, List, Clock, CalendarIcon } from 'lucide-react';
 import ServicosCatalogo from '@/components/ServicosCatalogo';
 import { toast } from 'sonner';
 
@@ -27,7 +27,7 @@ interface Props {
 }
 
 export default function ServicosModule({ ordens, clientes, orcamentos, catalogoServicos, addServicoCatalogo, removeServicoCatalogo, updateServicoCatalogo, addOrdem, updateOrdem, removeOrdem }: Props) {
-  const [activeTab, setActiveTab] = useState<'ordens' | 'catalogo'>('ordens');
+  const [activeTab, setActiveTab] = useState<'ordens' | 'catalogo' | 'agenda'>('ordens');
   const [showForm, setShowForm] = useState(false);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteId, setClienteId] = useState('');
@@ -37,6 +37,9 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
   const [valor, setValor] = useState('');
   const [orcamentoId, setOrcamentoId] = useState('');
   const [viewOrdem, setViewOrdem] = useState<OrdemServico | null>(null);
+  const [materiais, setMateriais] = useState<OSMaterial[]>([]);
+  const [duracaoHoras, setDuracaoHoras] = useState('');
+  const [dataAgendamento, setDataAgendamento] = useState('');
 
   const antesRef = useRef<HTMLInputElement>(null);
   const depoisRef = useRef<HTMLInputElement>(null);
@@ -62,15 +65,32 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
     }
   };
 
+  const addMaterial = () => setMateriais(prev => [...prev, { nome: '', quantidade: 1, unidade: 'un.', valor: 0 }]);
+  const updateMaterial = (idx: number, field: keyof OSMaterial, val: string | number) => {
+    setMateriais(prev => prev.map((m, i) => i === idx ? { ...m, [field]: val } : m));
+  };
+  const removeMaterial = (idx: number) => setMateriais(prev => prev.filter((_, i) => i !== idx));
+
+  const resetForm = () => {
+    setClienteNome(''); setClienteId(''); setDescricao('');
+    setCodigo(''); setValor(''); setOrcamentoId('');
+    setMateriais([]); setDuracaoHoras(''); setDataAgendamento('');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!clienteNome || !descricao) {
       toast.error('Preencha o cliente e a descrição');
       return;
     }
-    addOrdem({ clienteId, clienteNome, descricao, data, codigo, valor: parseFloat(valor) || 0 });
-    setClienteNome(''); setClienteId(''); setDescricao('');
-    setCodigo(''); setValor(''); setOrcamentoId('');
+    addOrdem({
+      clienteId, clienteNome, descricao, data, codigo,
+      valor: parseFloat(valor) || 0,
+      materiais: materiais.filter(m => m.nome),
+      duracaoHoras: parseFloat(duracaoHoras) || 0,
+      dataAgendamento: dataAgendamento || null,
+    });
+    resetForm();
     setShowForm(false);
     toast.success('Ordem de serviço criada!');
   };
@@ -111,6 +131,16 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
     return 'Pendente';
   };
 
+  // Agenda: ordens agendadas ordenadas por data
+  const agendadas = ordens
+    .filter(o => o.dataAgendamento)
+    .sort((a, b) => new Date(a.dataAgendamento!).getTime() - new Date(b.dataAgendamento!).getTime());
+
+  const formatDateTime = (dt: string) => {
+    const d = new Date(dt);
+    return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="space-y-3">
       {/* Tabs */}
@@ -119,7 +149,13 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
           onClick={() => setActiveTab('ordens')}
           className={`flex items-center gap-1.5 rounded-t px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'ordens' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
         >
-          <List className="h-4 w-4" /> Ordens de Serviço
+          <List className="h-4 w-4" /> Ordens
+        </button>
+        <button
+          onClick={() => setActiveTab('agenda')}
+          className={`flex items-center gap-1.5 rounded-t px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'agenda' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <CalendarIcon className="h-4 w-4" /> Agenda
         </button>
         <button
           onClick={() => setActiveTab('catalogo')}
@@ -136,6 +172,71 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
           removeServico={removeServicoCatalogo}
           updateServico={updateServicoCatalogo}
         />
+      ) : activeTab === 'agenda' ? (
+        /* ==================== AGENDA ==================== */
+        <div className="space-y-3">
+          {agendadas.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+                <CalendarIcon className="h-12 w-12 opacity-30" />
+                <p className="text-sm">Nenhum serviço agendado</p>
+                <Button onClick={() => { setActiveTab('ordens'); setShowForm(true); }}>
+                  <Plus className="h-4 w-4" /> Agendar Serviço
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            agendadas.map(os => {
+              const agendDt = new Date(os.dataAgendamento!);
+              const isPast = agendDt < new Date();
+              return (
+                <Card key={os.id} className={`overflow-hidden ${isPast ? 'opacity-60' : ''}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-bold text-primary flex items-center gap-1">
+                          <CalendarIcon className="h-3.5 w-3.5" />
+                          {formatDateTime(os.dataAgendamento!)}
+                        </p>
+                        <p className="font-semibold mt-1">{os.clienteNome}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{os.descricao}</p>
+                        {os.duracaoHoras > 0 && (
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> Duração: {os.duracaoHoras}h
+                          </p>
+                        )}
+                        {os.valor > 0 && <p className="text-xs font-medium mt-0.5">R$ {os.valor.toFixed(2)}</p>}
+                      </div>
+                      <Badge className={statusColor(os.status)}>{statusLabel(os.status)}</Badge>
+                    </div>
+                    {os.materiais && os.materiais.length > 0 && (
+                      <div className="mt-2 rounded bg-muted/50 p-2">
+                        <p className="text-xs font-semibold mb-1">Materiais:</p>
+                        {os.materiais.map((m, i) => (
+                          <p key={i} className="text-xs text-muted-foreground">• {m.nome} ({m.quantidade} {m.unidade}) — R$ {m.valor.toFixed(2)}</p>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-2 flex gap-2">
+                      <select
+                        className="rounded border bg-background px-2 py-1 text-xs"
+                        value={os.status}
+                        onChange={e => updateOrdem(os.id, { status: e.target.value as OrdemServico['status'] })}
+                      >
+                        <option value="pendente">Pendente</option>
+                        <option value="em_andamento">Em andamento</option>
+                        <option value="concluido">Concluído</option>
+                      </select>
+                      <Button size="sm" variant="ghost" onClick={() => setViewOrdem(os)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
       ) : (
       <>
       {/* Hidden file inputs */}
@@ -165,9 +266,29 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {os.data}{os.codigo && ` • ${os.codigo}`}{os.valor > 0 && ` • R$ ${os.valor.toFixed(2)}`}
                     </p>
+                    {os.dataAgendamento && (
+                      <p className="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                        <CalendarIcon className="h-3 w-3" /> Agendado: {formatDateTime(os.dataAgendamento)}
+                      </p>
+                    )}
+                    {os.duracaoHoras > 0 && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Clock className="h-3 w-3" /> {os.duracaoHoras}h
+                      </p>
+                    )}
                   </div>
                   <Badge className={statusColor(os.status)}>{statusLabel(os.status)}</Badge>
                 </div>
+
+                {/* Materials */}
+                {os.materiais && os.materiais.length > 0 && (
+                  <div className="mt-2 rounded bg-muted/50 p-2">
+                    <p className="text-xs font-semibold mb-1">Materiais:</p>
+                    {os.materiais.map((m, i) => (
+                      <p key={i} className="text-xs text-muted-foreground">• {m.nome} ({m.quantidade} {m.unidade}) — R$ {m.valor.toFixed(2)}</p>
+                    ))}
+                  </div>
+                )}
 
                 {/* Photo thumbnails */}
                 <div className="mt-3 grid grid-cols-2 gap-2">
@@ -233,7 +354,7 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
       </button>
 
       {/* New OS Dialog */}
-      <Dialog open={showForm} onOpenChange={open => { setShowForm(open); if (!open) { setClienteNome(''); setClienteId(''); setDescricao(''); setCodigo(''); setValor(''); setOrcamentoId(''); } }}>
+      <Dialog open={showForm} onOpenChange={open => { setShowForm(open); if (!open) resetForm(); }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nova Ordem de Serviço</DialogTitle>
@@ -274,7 +395,7 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
                 {orcamentoVinculado && orcamentoVinculado.materiais?.length > 0 && (
                   <div className="mt-2 rounded-lg bg-muted/50 p-3">
                     <p className="mb-1 text-xs font-semibold flex items-center gap-1">
-                      <Package className="h-3.5 w-3.5" /> Materiais:
+                      <Package className="h-3.5 w-3.5" /> Materiais do orçamento:
                     </p>
                     <ul className="space-y-0.5">
                       {orcamentoVinculado.materiais.map((m, i) => (
@@ -321,6 +442,45 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
               <label className="mb-1 block text-sm font-medium">Descrição do serviço</label>
               <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Detalhe o serviço" />
             </div>
+
+            {/* Materiais */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium flex items-center gap-1">
+                  <Package className="h-4 w-4 text-primary" /> Materiais
+                </label>
+                <Button type="button" size="sm" variant="outline" onClick={addMaterial}>
+                  <Plus className="h-3 w-3" /> Material
+                </Button>
+              </div>
+              {materiais.map((m, idx) => (
+                <div key={idx} className="grid grid-cols-12 gap-1.5 mb-1.5">
+                  <Input className="col-span-4" placeholder="Nome" value={m.nome} onChange={e => updateMaterial(idx, 'nome', e.target.value)} />
+                  <Input className="col-span-2" type="number" placeholder="Qtd" value={m.quantidade || ''} onChange={e => updateMaterial(idx, 'quantidade', parseFloat(e.target.value) || 0)} />
+                  <Input className="col-span-2" placeholder="un." value={m.unidade} onChange={e => updateMaterial(idx, 'unidade', e.target.value)} />
+                  <Input className="col-span-3" type="number" step="0.01" placeholder="Valor" value={m.valor || ''} onChange={e => updateMaterial(idx, 'valor', parseFloat(e.target.value) || 0)} />
+                  <Button type="button" variant="ghost" size="sm" className="col-span-1 p-0 text-destructive" onClick={() => removeMaterial(idx)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium flex items-center gap-1">
+                  <Clock className="h-4 w-4 text-primary" /> Duração (horas)
+                </label>
+                <Input type="number" step="0.5" value={duracaoHoras} onChange={e => setDuracaoHoras(e.target.value)} placeholder="0" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium flex items-center gap-1">
+                  <CalendarIcon className="h-4 w-4 text-primary" /> Agendamento
+                </label>
+                <Input type="datetime-local" value={dataAgendamento} onChange={e => setDataAgendamento(e.target.value)} />
+              </div>
+            </div>
+
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="mb-1 block text-sm font-medium">Data</label>
@@ -353,7 +513,21 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
           {viewOrdem && (
             <div className="space-y-4">
               <p className="text-sm">Data: {viewOrdem.data} • Status: {statusLabel(viewOrdem.status)}</p>
+              {viewOrdem.dataAgendamento && (
+                <p className="text-sm text-primary font-medium flex items-center gap-1">
+                  <CalendarIcon className="h-4 w-4" /> Agendado: {formatDateTime(viewOrdem.dataAgendamento)}
+                </p>
+              )}
+              {viewOrdem.duracaoHoras > 0 && <p className="text-sm flex items-center gap-1"><Clock className="h-4 w-4" /> Duração: {viewOrdem.duracaoHoras}h</p>}
               {viewOrdem.valor > 0 && <p className="text-sm font-semibold">Valor: R$ {viewOrdem.valor.toFixed(2)}</p>}
+              {viewOrdem.materiais && viewOrdem.materiais.length > 0 && (
+                <div className="rounded bg-muted/50 p-3">
+                  <p className="text-xs font-semibold mb-1">Materiais:</p>
+                  {viewOrdem.materiais.map((m, i) => (
+                    <p key={i} className="text-xs text-muted-foreground">• {m.nome} ({m.quantidade} {m.unidade}) — R$ {m.valor.toFixed(2)}</p>
+                  ))}
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="mb-1 text-xs font-medium text-muted-foreground">ANTES</p>

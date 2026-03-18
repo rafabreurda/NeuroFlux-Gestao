@@ -329,7 +329,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => {
                   if (!osDescricao) { toast.error('Preencha a descrição'); return; }
-                  addOrdem({ clienteId: selectedCliente.id, clienteNome: selectedCliente.nome, descricao: osDescricao, data: osData, codigo: '', valor: parseFloat(osValor) || 0 });
+                  addOrdem({ clienteId: selectedCliente.id, clienteNome: selectedCliente.nome, descricao: osDescricao, data: osData, codigo: '', valor: parseFloat(osValor) || 0, materiais: [], duracaoHoras: 0, dataAgendamento: null });
                   setOsDescricao(''); setOsValor(''); setShowNovoServico(false);
                   toast.success('Serviço criado!');
                 }}>
