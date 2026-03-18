@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Cliente, OrdemServico, Orcamento } from '@/types';
+import { Cliente, OrdemServico, Orcamento, ServicoCatalogo } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
