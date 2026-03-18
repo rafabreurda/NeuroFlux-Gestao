@@ -16,7 +16,6 @@ interface Props {
   updateConfig: (updates: Partial<EmpresaConfig>) => void;
   profile: Profile | null;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
-  isAdmin?: boolean;
 }
 
 const ESTADOS_BR = [
