@@ -213,7 +213,11 @@ export type Database = {
           cliente_id: string
           cliente_nome: string
           created_at: string
+          desconto: number | null
+          dias: number | null
+          horas: number | null
           id: string
+          km: number | null
           mao_de_obra: number
           observacoes: string
           status: string
@@ -225,7 +229,11 @@ export type Database = {
           cliente_id?: string
           cliente_nome: string
           created_at?: string
+          desconto?: number | null
+          dias?: number | null
+          horas?: number | null
           id?: string
+          km?: number | null
           mao_de_obra?: number
           observacoes?: string
           status?: string
@@ -237,7 +245,11 @@ export type Database = {
           cliente_id?: string
           cliente_nome?: string
           created_at?: string
+          desconto?: number | null
+          dias?: number | null
+          horas?: number | null
           id?: string
+          km?: number | null
           mao_de_obra?: number
           observacoes?: string
           status?: string
@@ -385,6 +397,33 @@ export type Database = {
           forma_pagamento?: string
           id?: string
           numero?: number
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      servicos_catalogo: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          nome: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          nome: string
+          user_id: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          nome?: string
           user_id?: string
           valor?: number
         }

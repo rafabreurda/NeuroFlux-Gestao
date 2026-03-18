@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { OrdemServico, Cliente, Orcamento } from '@/types';
+import { OrdemServico, Cliente, Orcamento, ServicoCatalogo } from '@/types';
 import ClienteAutocomplete from '@/components/ClienteAutocomplete';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,19 +9,25 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
-import { Camera, Plus, Trash2, Eye, ImageIcon, FileText, Package } from 'lucide-react';
+import { Camera, Plus, Trash2, Eye, ImageIcon, FileText, Package, List } from 'lucide-react';
+import ServicosCatalogo from '@/components/ServicosCatalogo';
 import { toast } from 'sonner';
 
 interface Props {
   ordens: OrdemServico[];
   clientes: Cliente[];
   orcamentos: Orcamento[];
+  catalogoServicos: ServicoCatalogo[];
+  addServicoCatalogo: (s: Omit<ServicoCatalogo, 'id' | 'criadoEm'>) => void;
+  removeServicoCatalogo: (id: string) => void;
+  updateServicoCatalogo: (id: string, updates: Partial<ServicoCatalogo>) => void;
   addOrdem: (o: Omit<OrdemServico, 'id' | 'criadoEm' | 'fotoAntes' | 'fotoDepois' | 'status'>) => void;
   updateOrdem: (id: string, updates: Partial<OrdemServico>) => void;
   removeOrdem: (id: string) => void;
 }
 
-export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem, updateOrdem, removeOrdem }: Props) {
+export default function ServicosModule({ ordens, clientes, orcamentos, catalogoServicos, addServicoCatalogo, removeServicoCatalogo, updateServicoCatalogo, addOrdem, updateOrdem, removeOrdem }: Props) {
+  const [activeTab, setActiveTab] = useState<'ordens' | 'catalogo'>('ordens');
   const [showForm, setShowForm] = useState(false);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteId, setClienteId] = useState('');
@@ -107,6 +113,31 @@ export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem,
 
   return (
     <div className="space-y-3">
+      {/* Tabs */}
+      <div className="flex gap-2 border-b pb-2">
+        <button
+          onClick={() => setActiveTab('ordens')}
+          className={`flex items-center gap-1.5 rounded-t px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'ordens' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <List className="h-4 w-4" /> Ordens de Serviço
+        </button>
+        <button
+          onClick={() => setActiveTab('catalogo')}
+          className={`flex items-center gap-1.5 rounded-t px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'catalogo' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <Package className="h-4 w-4" /> Catálogo
+        </button>
+      </div>
+
+      {activeTab === 'catalogo' ? (
+        <ServicosCatalogo
+          servicos={catalogoServicos}
+          addServico={addServicoCatalogo}
+          removeServico={removeServicoCatalogo}
+          updateServico={updateServicoCatalogo}
+        />
+      ) : (
+      <>
       {/* Hidden file inputs */}
       <input ref={antesRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
       <input ref={depoisRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
@@ -257,6 +288,35 @@ export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem,
               </div>
             )}
 
+            {catalogoServicos.length > 0 && (
+              <div>
+                <label className="mb-1 block text-sm font-medium flex items-center gap-1">
+                  <Package className="h-4 w-4 text-primary" /> Selecionar do Catálogo (opcional)
+                </label>
+                <select
+                  className="w-full rounded border bg-background px-3 py-2 text-sm"
+                  value=""
+                  onChange={e => {
+                    const svc = catalogoServicos.find(s => s.id === e.target.value);
+                    if (svc) {
+                      setDescricao(prev => prev ? `${prev}\n${svc.nome}` : svc.nome);
+                      setValor(prev => {
+                        const current = parseFloat(prev) || 0;
+                        return (current + svc.valor).toFixed(2);
+                      });
+                    }
+                  }}
+                >
+                  <option value="">Escolha um serviço...</option>
+                  {catalogoServicos.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.nome} — R$ {s.valor.toFixed(2)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="mb-1 block text-sm font-medium">Descrição do serviço</label>
               <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Detalhe o serviço" />
@@ -319,6 +379,8 @@ export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem,
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </>
+      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@ import CustosModule from '@/modules/CustosModule';
 import ConfigModule from '@/modules/ConfigModule';
 import {
   useClientes, useOrdensServico, useOrcamentos,
-  useRecibos, useCustos, useEmpresaConfig
+  useRecibos, useCustos, useEmpresaConfig, useServicosCatalogo
 } from '@/store/useStore';
 import { useProfile } from '@/hooks/useProfile';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -39,6 +39,7 @@ const Index = ({ user, signOut }: Props) => {
   const { recibos, addRecibo } = useRecibos();
   const { custos, addCusto, removeCusto } = useCustos();
   const { config, updateConfig } = useEmpresaConfig();
+  const { servicos: catalogoServicos, addServico: addServicoCatalogo, removeServico: removeServicoCatalogo, updateServico: updateServicoCatalogo } = useServicosCatalogo();
   const { profile, updateProfile } = useProfile(user?.id);
   const { isAdmin } = useUserRole(user?.id);
 
@@ -74,7 +75,7 @@ const Index = ({ user, signOut }: Props) => {
   return (
     <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome}>
       {activeModule === 'servicos' && (
-        <ServicosModule ordens={ordens} clientes={clientes} orcamentos={orcamentos} addOrdem={addOrdem} updateOrdem={updateOrdem} removeOrdem={removeOrdem} />
+        <ServicosModule ordens={ordens} clientes={clientes} orcamentos={orcamentos} catalogoServicos={catalogoServicos} addServicoCatalogo={addServicoCatalogo} removeServicoCatalogo={removeServicoCatalogo} updateServicoCatalogo={updateServicoCatalogo} addOrdem={addOrdem} updateOrdem={updateOrdem} removeOrdem={removeOrdem} />
       )}
       {activeModule === 'clientes' && (
         <ClientesModule clientes={clientes} addCliente={addCliente} updateCliente={updateCliente} removeCliente={removeCliente} ordens={ordens} orcamentos={orcamentos} addOrdem={addOrdem} />

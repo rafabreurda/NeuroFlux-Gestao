@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Cliente, OrdemServico, Orcamento, Recibo, CustoFixo, EmpresaConfig } from '@/types';
+import { Cliente, OrdemServico, Orcamento, Recibo, CustoFixo, EmpresaConfig, ServicoCatalogo } from '@/types';
 import { toast } from 'sonner';
 
 // Helper to get current user id
@@ -147,7 +147,7 @@ export function useOrcamentos() {
           nome: m.nome, valor: Number(m.valor),
           unidade: m.unidade || 'un.', quantidade: m.quantidade || 1, custoUnitario: Number(m.custo_unitario || 0), margemLucro: Number(m.margem_lucro || 0),
         })),
-        maoDeObra: Number(d.mao_de_obra), horas: Number(d.horas || 0), dias: Number(d.dias || 0), km: Number(d.km || 0), desconto: Number(d.desconto || 0),
+        maoDeObra: Number(d.mao_de_obra), horas: Number((d as any).horas || 0), dias: Number((d as any).dias || 0), km: Number((d as any).km || 0), desconto: Number((d as any).desconto || 0),
         validade: d.validade, observacoes: d.observacoes,
         status: d.status as Orcamento['status'], assinatura: d.assinatura, criadoEm: d.created_at,
       })));
@@ -301,4 +301,52 @@ export function useEmpresaConfig() {
   }, [config]);
 
   return { config, updateConfig };
+}
+
+// ========== CATÁLOGO DE SERVIÇOS ==========
+export function useServicosCatalogo() {
+  const [servicos, setServicos] = useState<ServicoCatalogo[]>([]);
+
+  const fetch = useCallback(async () => {
+    const { data } = await supabase.from('servicos_catalogo' as any).select('*').order('created_at', { ascending: false });
+    if (data) {
+      setServicos((data as any[]).map(d => ({
+        id: d.id, nome: d.nome, descricao: d.descricao || '', valor: Number(d.valor), criadoEm: d.created_at,
+      })));
+    }
+  }, []);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  const addServico = useCallback(async (s: Omit<ServicoCatalogo, 'id' | 'criadoEm'>) => {
+    const userId = await getUserId();
+    if (!userId) return;
+    const { data, error } = await supabase.from('servicos_catalogo' as any).insert({
+      user_id: userId, nome: s.nome, descricao: s.descricao, valor: s.valor,
+    } as any).select().single();
+    if (error) { toast.error('Erro ao salvar serviço'); return; }
+    if (data) {
+      const d = data as any;
+      setServicos(prev => [{ id: d.id, nome: d.nome, descricao: d.descricao || '', valor: Number(d.valor), criadoEm: d.created_at }, ...prev]);
+    }
+    toast.success('Serviço cadastrado!');
+  }, []);
+
+  const removeServico = useCallback(async (id: string) => {
+    const { error } = await supabase.from('servicos_catalogo' as any).delete().eq('id', id);
+    if (error) { toast.error('Erro ao remover serviço'); return; }
+    setServicos(prev => prev.filter(s => s.id !== id));
+  }, []);
+
+  const updateServico = useCallback(async (id: string, updates: Partial<ServicoCatalogo>) => {
+    const payload: any = {};
+    if (updates.nome !== undefined) payload.nome = updates.nome;
+    if (updates.descricao !== undefined) payload.descricao = updates.descricao;
+    if (updates.valor !== undefined) payload.valor = updates.valor;
+    const { error } = await supabase.from('servicos_catalogo' as any).update(payload).eq('id', id);
+    if (error) { toast.error('Erro ao atualizar serviço'); return; }
+    setServicos(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  }, []);
+
+  return { servicos, addServico, removeServico, updateServico };
 }

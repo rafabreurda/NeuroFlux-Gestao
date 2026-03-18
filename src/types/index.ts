@@ -91,3 +91,11 @@ export interface EmpresaConfig {
   valorDia: number;
   valorKm: number;
 }
+
+export interface ServicoCatalogo {
+  id: string;
+  nome: string;
+  descricao: string;
+  valor: number;
+  criadoEm: string;
+}
