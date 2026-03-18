@@ -1,4 +1,4 @@
-// Admin users management v2 - stores password on create & reset
+// Admin users management v3 - plans, contracts, password visibility
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -7,7 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Convert username to internal email format
 function usernameToEmail(username: string): string {
   return `${username.toLowerCase().replace(/\s+/g, '.')}@neuroflux.app`;
 }
@@ -22,7 +21,6 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify caller is admin
     const authHeader = req.headers.get("Authorization")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const callerClient = createClient(supabaseUrl, anonKey, {
@@ -35,13 +33,8 @@ serve(async (req) => {
       });
     }
 
-    // Check admin role
     const { data: roleData } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id)
-      .eq("role", "admin")
-      .single();
+      .from("user_roles").select("role").eq("user_id", caller.id).eq("role", "admin").single();
 
     if (!roleData) {
       return new Response(JSON.stringify({ error: "Sem permissão de administrador" }), {
@@ -51,133 +44,126 @@ serve(async (req) => {
 
     const { action, ...params } = await req.json();
 
+    // ============ CREATE USER ============
     if (action === "create-user") {
       const { username, password, nome, cpf, telefone, endereco, bairro, cidade, estado, empresa, cnpj } = params;
-      
       if (!username || !password) {
         return new Response(JSON.stringify({ error: "Usuário e senha são obrigatórios" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
       const email = usernameToEmail(username);
-
-      // Create auth user
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
+        email, password, email_confirm: true,
         user_metadata: { nome: nome || username, username },
       });
-
       if (createError) {
-        if (createError.message.includes("already been registered")) {
-          return new Response(JSON.stringify({ error: "Este nome de usuário já está em uso" }), {
-            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        return new Response(JSON.stringify({ error: createError.message }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        const msg = createError.message.includes("already been registered") ? "Este nome de usuário já está em uso" : createError.message;
+        return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-
-      // Update profile with full data + plain password
       await supabaseAdmin.from("profiles").update({
-        nome: nome || username,
-        cpf: cpf || "",
-        cnpj: cnpj || "",
-        telefone: telefone || "",
-        endereco: endereco || "",
-        bairro: bairro || "",
-        cidade: cidade || "",
-        estado: estado || "",
-        empresa: empresa || "",
-        senha_texto: password,
+        nome: nome || username, cpf: cpf || "", cnpj: cnpj || "", telefone: telefone || "",
+        endereco: endereco || "", bairro: bairro || "", cidade: cidade || "", estado: estado || "",
+        empresa: empresa || "", senha_texto: password,
       }).eq("user_id", newUser.user!.id);
-
-      // Assign user role
-      await supabaseAdmin.from("user_roles").insert({
-        user_id: newUser.user!.id,
-        role: "user",
-      });
-
-      return new Response(JSON.stringify({
-        success: true,
-        user: { id: newUser.user!.id, username, nome, initial_password: password },
-      }), {
+      await supabaseAdmin.from("user_roles").insert({ user_id: newUser.user!.id, role: "user" });
+      return new Response(JSON.stringify({ success: true, user: { id: newUser.user!.id, username, nome } }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // ============ LIST USERS ============
     if (action === "list-users") {
-      const { data: profiles } = await supabaseAdmin
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      const { data: roles } = await supabaseAdmin
-        .from("user_roles")
-        .select("*");
-
-      // Get auth users to extract usernames
+      const { data: profiles } = await supabaseAdmin.from("profiles").select("*").order("created_at", { ascending: false });
+      const { data: roles } = await supabaseAdmin.from("user_roles").select("*");
       const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+      const { data: planos } = await supabaseAdmin.from("planos_usuarios").select("*").order("data_vencimento", { ascending: true });
+      const { data: contratos } = await supabaseAdmin.from("contratos_usuarios").select("*").order("created_at", { ascending: false });
 
       const enriched = (profiles || []).map((p: any) => {
         const authUser = authUsers?.users?.find((u: any) => u.id === p.user_id);
         const username = authUser?.user_metadata?.username || authUser?.email?.split("@")[0] || "";
         return {
-          ...p,
-          username,
+          ...p, username,
           role: roles?.find((r: any) => r.user_id === p.user_id)?.role || "user",
+          planos: (planos || []).filter((pl: any) => pl.user_id === p.user_id),
+          contratos: (contratos || []).filter((c: any) => c.user_id === p.user_id),
         };
       });
-
       return new Response(JSON.stringify({ users: enriched }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // ============ RESET PASSWORD ============
     if (action === "reset-password") {
       const { userId, newPassword } = params;
-      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-        password: newPassword,
-      });
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      // Update stored plain password
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       await supabaseAdmin.from("profiles").update({ senha_texto: newPassword }).eq("user_id", userId);
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ============ DELETE USER ============
     if (action === "delete-user") {
       const { userId } = params;
       const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ============ UPDATE USER PROFILE ============
     if (action === "update-user-profile") {
       const { userId, ...profileData } = params;
       const { error } = await supabaseAdmin.from("profiles").update(profileData).eq("user_id", userId);
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ============ ADD PLAN ============
+    if (action === "add-plano") {
+      const { userId, nomePlano, valor, dataInicio, dataVencimento, observacoes } = params;
+      const { data, error } = await supabaseAdmin.from("planos_usuarios").insert({
+        user_id: userId, nome_plano: nomePlano, valor: valor || 0,
+        data_inicio: dataInicio, data_vencimento: dataVencimento, observacoes: observacoes || '',
+      }).select().single();
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, plano: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ============ DELETE PLAN ============
+    if (action === "delete-plano") {
+      const { planoId } = params;
+      const { error } = await supabaseAdmin.from("planos_usuarios").delete().eq("id", planoId);
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ============ ADD CONTRACT METADATA ============
+    if (action === "add-contrato") {
+      const { userId, nomeArquivo, storagePath } = params;
+      const { data, error } = await supabaseAdmin.from("contratos_usuarios").insert({
+        user_id: userId, nome_arquivo: nomeArquivo, storage_path: storagePath,
+      }).select().single();
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, contrato: data }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ============ DELETE CONTRACT ============
+    if (action === "delete-contrato") {
+      const { contratoId, storagePath } = params;
+      await supabaseAdmin.storage.from("contratos").remove([storagePath]);
+      const { error } = await supabaseAdmin.from("contratos_usuarios").delete().eq("id", contratoId);
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ============ GET CONTRACT SIGNED URL ============
+    if (action === "get-contrato-url") {
+      const { storagePath } = params;
+      const { data, error } = await supabaseAdmin.storage.from("contratos").createSignedUrl(storagePath, 3600);
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, url: data.signedUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     return new Response(JSON.stringify({ error: "Ação desconhecida" }), {
