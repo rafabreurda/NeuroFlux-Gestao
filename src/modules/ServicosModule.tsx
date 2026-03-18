@@ -113,6 +113,31 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
 
   return (
     <div className="space-y-3">
+      {/* Tabs */}
+      <div className="flex gap-2 border-b pb-2">
+        <button
+          onClick={() => setActiveTab('ordens')}
+          className={`flex items-center gap-1.5 rounded-t px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'ordens' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <List className="h-4 w-4" /> Ordens de Serviço
+        </button>
+        <button
+          onClick={() => setActiveTab('catalogo')}
+          className={`flex items-center gap-1.5 rounded-t px-3 py-1.5 text-sm font-medium transition-colors ${activeTab === 'catalogo' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <Package className="h-4 w-4" /> Catálogo
+        </button>
+      </div>
+
+      {activeTab === 'catalogo' ? (
+        <ServicosCatalogo
+          servicos={catalogoServicos}
+          addServico={addServicoCatalogo}
+          removeServico={removeServicoCatalogo}
+          updateServico={updateServicoCatalogo}
+        />
+      ) : (
+      <>
       {/* Hidden file inputs */}
       <input ref={antesRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
       <input ref={depoisRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
