@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { OrdemServico, Cliente } from '@/types';
+import { OrdemServico, Cliente, Orcamento } from '@/types';
 import ClienteAutocomplete from '@/components/ClienteAutocomplete';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,29 +9,52 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
-import { Camera, Plus, Trash2, Eye, ImageIcon } from 'lucide-react';
+import { Camera, Plus, Trash2, Eye, ImageIcon, FileText, Package } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
   ordens: OrdemServico[];
   clientes: Cliente[];
+  orcamentos: Orcamento[];
   addOrdem: (o: Omit<OrdemServico, 'id' | 'criadoEm' | 'fotoAntes' | 'fotoDepois' | 'status'>) => void;
   updateOrdem: (id: string, updates: Partial<OrdemServico>) => void;
   removeOrdem: (id: string) => void;
 }
 
-export default function ServicosModule({ ordens, clientes, addOrdem, updateOrdem, removeOrdem }: Props) {
+export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem, updateOrdem, removeOrdem }: Props) {
   const [clienteNome, setClienteNome] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [descricao, setDescricao] = useState('');
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
   const [codigo, setCodigo] = useState('');
   const [valor, setValor] = useState('');
+  const [orcamentoId, setOrcamentoId] = useState('');
   const [viewOrdem, setViewOrdem] = useState<OrdemServico | null>(null);
 
   const antesRef = useRef<HTMLInputElement>(null);
   const depoisRef = useRef<HTMLInputElement>(null);
   const [photoTarget, setPhotoTarget] = useState<{ id: string; type: 'antes' | 'depois' } | null>(null);
+
+  // Orçamentos do cliente selecionado
+  const orcamentosCliente = orcamentos.filter(o =>
+    o.clienteId === clienteId || o.clienteNome.toLowerCase() === clienteNome.toLowerCase()
+  );
+
+  const orcamentoVinculado = orcamentos.find(o => o.id === orcamentoId);
+
+  const handleOrcamentoSelect = (id: string) => {
+    setOrcamentoId(id);
+    if (id) {
+      const orc = orcamentos.find(o => o.id === id);
+      if (orc) {
+        const total = orc.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0)
+          + (orc.materiais || []).reduce((s, m) => s + m.valor, 0)
+          + (orc.maoDeObra || 0) - (orc.desconto || 0);
+        setValor(total.toFixed(2));
+        if (!descricao) setDescricao(orc.itens.map(i => i.descricao).join(', '));
+      }
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +75,7 @@ export default function ServicosModule({ ordens, clientes, addOrdem, updateOrdem
     setDescricao('');
     setCodigo('');
     setValor('');
+    setOrcamentoId('');
     toast.success('Ordem de serviço criada!');
   };
 
@@ -113,9 +137,50 @@ export default function ServicosModule({ ordens, clientes, addOrdem, updateOrdem
               <ClienteAutocomplete
                 clientes={clientes}
                 value={clienteNome}
-                onChange={(nome, id) => { setClienteNome(nome); setClienteId(id || ''); }}
+                onChange={(nome, id) => { setClienteNome(nome); setClienteId(id || ''); setOrcamentoId(''); }}
               />
             </div>
+
+            {/* Vincular orçamento */}
+            {orcamentosCliente.length > 0 && (
+              <div>
+                <label className="mb-1 block text-sm font-medium flex items-center gap-1">
+                  <FileText className="h-4 w-4 text-primary" /> Vincular Orçamento (opcional)
+                </label>
+                <select
+                  className="w-full rounded border bg-background px-3 py-2 text-sm"
+                  value={orcamentoId}
+                  onChange={e => handleOrcamentoSelect(e.target.value)}
+                >
+                  <option value="">Nenhum</option>
+                  {orcamentosCliente.map(o => {
+                    const total = o.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0)
+                      + (o.materiais || []).reduce((s, m) => s + m.valor, 0)
+                      + (o.maoDeObra || 0) - (o.desconto || 0);
+                    return (
+                      <option key={o.id} value={o.id}>
+                        {new Date(o.criadoEm).toLocaleDateString('pt-BR')} — R$ {total.toFixed(2)} ({o.status})
+                      </option>
+                    );
+                  })}
+                </select>
+                {orcamentoVinculado && orcamentoVinculado.materiais?.length > 0 && (
+                  <div className="mt-2 rounded-lg bg-muted/50 p-3">
+                    <p className="mb-1 text-xs font-semibold flex items-center gap-1">
+                      <Package className="h-3.5 w-3.5" /> Materiais do orçamento:
+                    </p>
+                    <ul className="space-y-0.5">
+                      {orcamentoVinculado.materiais.map((m, i) => (
+                        <li key={i} className="text-xs text-muted-foreground">
+                          • {m.nome} ({m.quantidade} {m.unidade}) — R$ {m.valor.toFixed(2)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
               <label className="mb-1 block text-sm font-medium">Descrição do serviço</label>
               <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Detalhe o serviço" />

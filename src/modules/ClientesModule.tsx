@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { Cliente, OrdemServico, Orcamento } from '@/types';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, UserPlus, ArrowLeft, Navigation, Map } from 'lucide-react';
+import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, UserPlus, ArrowLeft, Navigation, Map, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCpfCnpj, formatPhone, formatCep } from '@/lib/masks';
 
@@ -17,6 +18,7 @@ interface Props {
   removeCliente: (id: string) => void;
   ordens: OrdemServico[];
   orcamentos: Orcamento[];
+  addOrdem: (o: Omit<OrdemServico, 'id' | 'criadoEm' | 'fotoAntes' | 'fotoDepois' | 'status'>) => void;
 }
 
 interface ContactInfo {
@@ -55,7 +57,7 @@ async function fetchCep(cep: string) {
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-export default function ClientesModule({ clientes, addCliente, updateCliente, removeCliente, ordens, orcamentos }: Props) {
+export default function ClientesModule({ clientes, addCliente, updateCliente, removeCliente, ordens, orcamentos, addOrdem }: Props) {
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [email, setEmail] = useState('');
@@ -70,6 +72,10 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
   const [editCliente, setEditCliente] = useState<Cliente | null>(null);
   const [activeLetter, setActiveLetter] = useState<string | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  const [showNovoServico, setShowNovoServico] = useState(false);
+  const [osDescricao, setOsDescricao] = useState('');
+  const [osData, setOsData] = useState(new Date().toISOString().split('T')[0]);
+  const [osValor, setOsValor] = useState('');
 
   const handleCepChange = async (value: string, setters?: { setEndereco: (v: string) => void; setBairro: (v: string) => void; setCidade: (v: string) => void; setEstado: (v: string) => void }) => {
     const digits = value.replace(/\D/g, '');
@@ -188,10 +194,47 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">{selectedCliente.nome}</h2>
           <div className="flex gap-1">
+            <Button size="sm" variant="default" className="gap-1" onClick={() => setShowNovoServico(true)}>
+              <PlusCircle className="h-4 w-4" /> Novo Serviço
+            </Button>
             <Button size="sm" variant="outline" onClick={() => setEditCliente({ ...selectedCliente })}><Pencil className="h-4 w-4" /></Button>
             <Button size="sm" variant="outline" className="text-destructive" onClick={() => { removeCliente(selectedCliente.id); setSelectedCliente(null); }}><Trash2 className="h-4 w-4" /></Button>
           </div>
         </div>
+
+        {/* Novo Serviço inline */}
+        {showNovoServico && (
+          <Card className="border-primary/40 bg-primary/5">
+            <CardContent className="p-4 space-y-3">
+              <h4 className="font-semibold flex items-center gap-2"><Wrench className="h-4 w-4 text-primary" /> Nova OS — {selectedCliente.nome}</h4>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Descrição do serviço</label>
+                <Textarea value={osDescricao} onChange={e => setOsDescricao(e.target.value)} placeholder="Detalhe o serviço..." />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Data</label>
+                  <Input type="date" value={osData} onChange={e => setOsData(e.target.value)} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Valor (R$)</label>
+                  <Input type="number" step="0.01" value={osValor} onChange={e => setOsValor(e.target.value)} placeholder="0,00" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => {
+                  if (!osDescricao) { toast.error('Preencha a descrição'); return; }
+                  addOrdem({ clienteId: selectedCliente.id, clienteNome: selectedCliente.nome, descricao: osDescricao, data: osData, codigo: '', valor: parseFloat(osValor) || 0 });
+                  setOsDescricao(''); setOsValor(''); setShowNovoServico(false);
+                  toast.success('Serviço criado!');
+                }}>
+                  <Plus className="h-4 w-4" /> Salvar
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { setShowNovoServico(false); setOsDescricao(''); setOsValor(''); }}>Cancelar</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs defaultValue="cadastro">
           <TabsList className="w-full grid grid-cols-2">
