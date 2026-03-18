@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Trash2, FileText, Download, Minus, Navigation, Map } from 'lucide-react';
+import { Plus, Trash2, FileText, Download, Minus, Navigation, Map, Package } from 'lucide-react';
 import { toast } from 'sonner';
 
 const UNIDADES = [
