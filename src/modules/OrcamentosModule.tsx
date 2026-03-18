@@ -51,7 +51,7 @@ interface Props {
 const emptyItem = (): OrcamentoItem => ({ descricao: '', quantidade: 1, valorUnitario: 0, unidade: 'un.', custoUnitario: 0, margemLucro: 0 });
 const emptyMaterial = (): OrcamentoMaterial => ({ nome: '', valor: 0, unidade: 'un.', quantidade: 1, custoUnitario: 0, margemLucro: 0 });
 
-export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura, empresaEndereco, valorHora, valorDia, valorKm }: Props) {
+export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura, empresaEndereco, valorHora, valorDia, valorKm, catalogoServicos }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteId, setClienteId] = useState('');

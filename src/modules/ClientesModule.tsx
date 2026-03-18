@@ -83,7 +83,7 @@ async function fetchCep(cep: string) {
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-export default function ClientesModule({ clientes, addCliente, updateCliente, removeCliente, ordens, orcamentos, addOrdem }: Props) {
+export default function ClientesModule({ clientes, addCliente, updateCliente, removeCliente, ordens, orcamentos, addOrdem, addOrcamento, catalogoServicos }: Props) {
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [email, setEmail] = useState('');
