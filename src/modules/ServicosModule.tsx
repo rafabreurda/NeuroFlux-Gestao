@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
-import { Camera, Plus, Trash2, Eye, ImageIcon, FileText, Package } from 'lucide-react';
+import { Camera, Plus, Trash2, Eye, ImageIcon, FileText, Package, List } from 'lucide-react';
+import ServicosCatalogo from '@/components/ServicosCatalogo';
 import { toast } from 'sonner';
 
 interface Props {
