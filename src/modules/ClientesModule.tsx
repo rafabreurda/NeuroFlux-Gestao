@@ -101,6 +101,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
   const [osData, setOsData] = useState(new Date().toISOString().split('T')[0]);
   const [osValor, setOsValor] = useState('');
   const [syncing, setSyncing] = useState(false);
+  const [showNovoClienteDialog, setShowNovoClienteDialog] = useState(false);
   const lastSync = localStorage.getItem(SYNC_KEY);
 
   const handleCepChange = async (value: string, setters?: { setEndereco: (v: string) => void; setBairro: (v: string) => void; setCidade: (v: string) => void; setEstado: (v: string) => void }) => {
@@ -439,8 +440,6 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
   }
 
   // ==================== LISTA DE CLIENTES ====================
-  const [showNovoClienteDialog, setShowNovoClienteDialog] = useState(false);
-
   return (
     <div className="space-y-3">
       {/* Sync banner — aparece se faz mais de 1 dia sem sincronizar */}
