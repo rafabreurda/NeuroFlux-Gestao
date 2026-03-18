@@ -9,7 +9,6 @@ import { Settings, Upload, Trash2, PenTool, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatCpfCnpj, formatPhone } from '@/lib/masks';
-import { formatCpfCnpj, formatPhone } from '@/lib/masks';
 
 interface Props {
   config: EmpresaConfig;
