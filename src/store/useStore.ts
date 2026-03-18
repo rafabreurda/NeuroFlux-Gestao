@@ -85,6 +85,9 @@ export function useOrdensServico() {
         descricao: d.descricao, data: d.data, codigo: d.codigo,
         status: d.status as OrdemServico['status'], fotoAntes: d.foto_antes,
         fotoDepois: d.foto_depois, valor: Number(d.valor), criadoEm: d.created_at,
+        materiais: Array.isArray((d as any).materiais_json) ? (d as any).materiais_json : [],
+        duracaoHoras: Number((d as any).duracao_horas || 0),
+        dataAgendamento: (d as any).data_agendamento || null,
       })));
     }
   }, []);
@@ -97,14 +100,20 @@ export function useOrdensServico() {
     const { data, error } = await supabase.from('ordens_servico').insert({
       user_id: userId, cliente_id: o.clienteId, cliente_nome: o.clienteNome,
       descricao: o.descricao, data: o.data, codigo: o.codigo, valor: o.valor,
-    }).select().single();
+      materiais_json: o.materiais as any, duracao_horas: o.duracaoHoras,
+      data_agendamento: o.dataAgendamento,
+    } as any).select().single();
     if (error) { toast.error('Erro ao criar OS'); console.error(error); return; }
     if (data) {
+      const d = data as any;
       setOrdens(prev => [{
-        id: data.id, clienteId: data.cliente_id, clienteNome: data.cliente_nome,
-        descricao: data.descricao, data: data.data, codigo: data.codigo,
-        status: data.status as OrdemServico['status'], fotoAntes: data.foto_antes,
-        fotoDepois: data.foto_depois, valor: Number(data.valor), criadoEm: data.created_at,
+        id: d.id, clienteId: d.cliente_id, clienteNome: d.cliente_nome,
+        descricao: d.descricao, data: d.data, codigo: d.codigo,
+        status: d.status as OrdemServico['status'], fotoAntes: d.foto_antes,
+        fotoDepois: d.foto_depois, valor: Number(d.valor), criadoEm: d.created_at,
+        materiais: Array.isArray(d.materiais_json) ? d.materiais_json : [],
+        duracaoHoras: Number(d.duracao_horas || 0),
+        dataAgendamento: d.data_agendamento || null,
       }, ...prev]);
     }
   }, []);
