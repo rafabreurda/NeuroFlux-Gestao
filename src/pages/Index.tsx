@@ -78,10 +78,10 @@ const Index = ({ user, signOut }: Props) => {
         <ServicosModule ordens={ordens} clientes={clientes} orcamentos={orcamentos} catalogoServicos={catalogoServicos} addServicoCatalogo={addServicoCatalogo} removeServicoCatalogo={removeServicoCatalogo} updateServicoCatalogo={updateServicoCatalogo} addOrdem={addOrdem} updateOrdem={updateOrdem} removeOrdem={removeOrdem} />
       )}
       {activeModule === 'clientes' && (
-        <ClientesModule clientes={clientes} addCliente={addCliente} updateCliente={updateCliente} removeCliente={removeCliente} ordens={ordens} orcamentos={orcamentos} addOrdem={addOrdem} />
+        <ClientesModule clientes={clientes} addCliente={addCliente} updateCliente={updateCliente} removeCliente={removeCliente} ordens={ordens} orcamentos={orcamentos} addOrdem={addOrdem} addOrcamento={addOrcamento} catalogoServicos={catalogoServicos} />
       )}
       {activeModule === 'orcamentos' && (
-        <OrcamentosModule orcamentos={orcamentos} clientes={clientes} addOrcamento={addOrcamento} updateOrcamento={updateOrcamento} empresaLogo={config.logo} empresaNome={config.nome} empresaAssinatura={config.assinatura} empresaEndereco={config.endereco} valorHora={config.valorHora} valorDia={config.valorDia} valorKm={config.valorKm} />
+        <OrcamentosModule orcamentos={orcamentos} clientes={clientes} addOrcamento={addOrcamento} updateOrcamento={updateOrcamento} empresaLogo={config.logo} empresaNome={config.nome} empresaAssinatura={config.assinatura} empresaEndereco={config.endereco} valorHora={config.valorHora} valorDia={config.valorDia} valorKm={config.valorKm} catalogoServicos={catalogoServicos} />
       )}
       {activeModule === 'faturamento' && (
         <FaturamentoModule recibos={recibos} addRecibo={addRecibo} empresaLogo={config.logo} empresaNome={config.nome} ordens={ordens} orcamentos={orcamentos} custos={custos} clientes={clientes} />
