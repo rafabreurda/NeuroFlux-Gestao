@@ -286,6 +286,32 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
           <Card className="border-primary/40 bg-primary/5">
             <CardContent className="p-4 space-y-3">
               <h4 className="font-semibold flex items-center gap-2"><Wrench className="h-4 w-4 text-primary" /> Nova OS — {selectedCliente.nome}</h4>
+              {catalogoServicos.length > 0 && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium flex items-center gap-1">
+                    <Package className="h-4 w-4 text-primary" /> Selecionar do Catálogo
+                  </label>
+                  <select
+                    className="w-full rounded border bg-background px-3 py-2 text-sm"
+                    value=""
+                    onChange={e => {
+                      const svc = catalogoServicos.find(s => s.id === e.target.value);
+                      if (svc) {
+                        setOsDescricao(prev => prev ? `${prev}\n${svc.nome}` : svc.nome);
+                        setOsValor(prev => {
+                          const current = parseFloat(prev) || 0;
+                          return (current + svc.valor).toFixed(2);
+                        });
+                      }
+                    }}
+                  >
+                    <option value="">Escolha um serviço...</option>
+                    {catalogoServicos.map(s => (
+                      <option key={s.id} value={s.id}>{s.nome} — R$ {s.valor.toFixed(2)}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="mb-1 block text-sm font-medium">Descrição do serviço</label>
                 <Textarea value={osDescricao} onChange={e => setOsDescricao(e.target.value)} placeholder="Detalhe o serviço..." />
