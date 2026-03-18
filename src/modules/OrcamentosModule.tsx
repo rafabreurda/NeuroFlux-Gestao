@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Orcamento, OrcamentoItem, OrcamentoMaterial, Cliente } from '@/types';
+import { Orcamento, OrcamentoItem, OrcamentoMaterial, Cliente, ServicoCatalogo } from '@/types';
 import ClienteAutocomplete from '@/components/ClienteAutocomplete';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
