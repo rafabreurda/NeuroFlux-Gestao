@@ -5,8 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, ArrowLeft, Navigation, Map, PlusCircle } from 'lucide-react';
+import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, ArrowLeft, Navigation, Map, PlusCircle, RefreshCw, PhoneCall } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCpfCnpj, formatPhone, formatCep } from '@/lib/masks';
 
@@ -27,20 +28,44 @@ interface ContactInfo {
   address?: { city?: string; street?: string; region?: string }[];
 }
 
-async function pickContact(): Promise<ContactInfo | null> {
+// Importar MÚLTIPLOS contatos da agenda do celular
+async function pickContacts(): Promise<ContactInfo[]> {
   try {
     const contacts = (navigator as any).contacts;
-    if (!contacts) return null;
+    if (!contacts) return [];
     const supported = await contacts.getProperties();
     const validProps = ['name', 'email', 'tel', 'address'].filter(p => supported.includes(p));
-    const [contact] = await contacts.select(validProps, { multiple: false });
-    return contact || null;
-  } catch { return null; }
+    const result = await contacts.select(validProps, { multiple: true });
+    return result || [];
+  } catch { return []; }
 }
 
 function hasContactPicker(): boolean {
   return 'contacts' in navigator && 'ContactsManager' in window;
 }
+
+// Tenta Capacitor Contacts (app nativo) via objeto global — sem import estático
+async function getAllContactsNative(): Promise<ContactInfo[]> {
+  try {
+    const cap = (window as any).Capacitor;
+    if (!cap?.isNativePlatform?.()) return [];
+    // No app nativo o plugin é injetado globalmente pelo Capacitor
+    const Contacts = (window as any).CapacitorCommunityContacts;
+    if (!Contacts) return [];
+    const perm = await Contacts.requestPermissions();
+    if (perm.contacts !== 'granted') return [];
+    const { contacts } = await Contacts.getContacts({ projection: { name: true, phones: true, emails: true } });
+    return contacts.map((c: any) => ({
+      name: c.name?.display ? [c.name.display] : undefined,
+      tel: c.phones?.map((p: any) => p.number),
+      email: c.emails?.map((e: any) => e.address),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+const SYNC_KEY = 'neuroflux_contacts_last_sync';
 
 async function fetchCep(cep: string) {
   const clean = cep.replace(/\D/g, '');
@@ -75,6 +100,8 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
   const [osDescricao, setOsDescricao] = useState('');
   const [osData, setOsData] = useState(new Date().toISOString().split('T')[0]);
   const [osValor, setOsValor] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const lastSync = localStorage.getItem(SYNC_KEY);
 
   const handleCepChange = async (value: string, setters?: { setEndereco: (v: string) => void; setBairro: (v: string) => void; setCidade: (v: string) => void; setEstado: (v: string) => void }) => {
     const digits = value.replace(/\D/g, '');
@@ -89,10 +116,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
           setters.setCidade(result.cidade);
           setters.setEstado(result.estado);
         } else {
-          setEndereco(result.endereco);
-          setBairro(result.bairro);
-          setCidade(result.cidade);
-          setEstado(result.estado);
+          setEndereco(result.endereco); setBairro(result.bairro); setCidade(result.cidade); setEstado(result.estado);
         }
         toast.success('Endereço preenchido automaticamente!');
       } else {
@@ -114,18 +138,68 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
     toast.success('Cliente cadastrado!');
   };
 
-  const handleImportContact = async () => {
-    if (!hasContactPicker()) { toast.error('Importação de contatos não suportada neste navegador.'); return; }
-    const contact = await pickContact();
-    if (!contact) return;
-    setNome(contact.name?.[0] || '');
-    setTelefone(contact.tel?.[0] || '');
-    setEmail(contact.email?.[0] || '');
-    if (contact.address?.[0]) {
-      const a = contact.address[0];
-      setEndereco(a.street || ''); setCidade(a.city || ''); setEstado(a.region || '');
+  // Sincronizar contatos da agenda do telefone
+  const handleSyncContacts = async () => {
+    setSyncing(true);
+    let contacts: ContactInfo[] = [];
+
+    // Tenta nativo (Capacitor) primeiro
+    contacts = await getAllContactsNative();
+
+    // Fallback: Contact Picker API (browser/PWA)
+    if (contacts.length === 0) {
+      if (!hasContactPicker()) {
+        toast.error('Sincronização de contatos não suportada neste navegador. Use o app instalado no celular.');
+        setSyncing(false);
+        return;
+      }
+      contacts = await pickContacts();
     }
-    toast.success('Contato importado! Revise e salve.');
+
+    if (contacts.length === 0) {
+      toast('Nenhum contato selecionado.');
+      setSyncing(false);
+      return;
+    }
+
+    let importados = 0;
+    let duplicados = 0;
+
+    for (const contact of contacts) {
+      const nomeContato = contact.name?.[0]?.trim();
+      if (!nomeContato) continue;
+
+      // Verificar se já existe (por nome ou telefone)
+      const telefoneContato = contact.tel?.[0] || '';
+      const jaExiste = clientes.some(
+        c => c.nome.toLowerCase() === nomeContato.toLowerCase() ||
+          (telefoneContato && c.telefone && c.telefone.replace(/\D/g, '') === telefoneContato.replace(/\D/g, ''))
+      );
+
+      if (jaExiste) { duplicados++; continue; }
+
+      addCliente({
+        nome: nomeContato,
+        telefone: contact.tel?.[0] || '',
+        email: contact.email?.[0] || '',
+        cpfCnpj: '',
+        cep: '',
+        endereco: contact.address?.[0]?.street || '',
+        bairro: '',
+        cidade: contact.address?.[0]?.city || '',
+        estado: contact.address?.[0]?.region || '',
+      });
+      importados++;
+    }
+
+    localStorage.setItem(SYNC_KEY, new Date().toISOString());
+    setSyncing(false);
+
+    if (importados > 0) {
+      toast.success(`${importados} contato${importados !== 1 ? 's' : ''} importado${importados !== 1 ? 's' : ''}!${duplicados > 0 ? ` (${duplicados} já existiam)` : ''}`);
+    } else if (duplicados > 0) {
+      toast('Todos os contatos selecionados já estão cadastrados.');
+    }
   };
 
   const handleSaveEdit = () => {
@@ -137,10 +211,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
     });
     toast.success('Cliente atualizado!');
     setEditCliente(null);
-    // Update selectedCliente if it was being viewed
-    if (selectedCliente?.id === editCliente.id) {
-      setSelectedCliente(editCliente);
-    }
+    if (selectedCliente?.id === editCliente.id) setSelectedCliente(editCliente);
   };
 
   const sortedFiltered = useMemo(() => {
@@ -185,23 +256,28 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
     const enderecoCompleto = [selectedCliente.endereco, selectedCliente.bairro, selectedCliente.cidade, selectedCliente.estado].filter(Boolean).join(', ');
 
     return (
-      <div className="space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => setSelectedCliente(null)} className="gap-2">
-          <ArrowLeft className="h-4 w-4" /> Voltar à Agenda
+      <div className="space-y-4 pb-24">
+        {/* Header */}
+        <Button variant="ghost" size="sm" onClick={() => { setSelectedCliente(null); setShowNovoServico(false); }} className="gap-2">
+          <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
 
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">{selectedCliente.nome}</h2>
+          <div>
+            <h2 className="text-xl font-bold">{selectedCliente.nome}</h2>
+            {selectedCliente.telefone && (
+              <a href={`tel:${selectedCliente.telefone}`} className="flex items-center gap-1 text-sm text-primary">
+                <PhoneCall className="h-3.5 w-3.5" /> {selectedCliente.telefone}
+              </a>
+            )}
+          </div>
           <div className="flex gap-1">
-            <Button size="sm" variant="default" className="gap-1" onClick={() => setShowNovoServico(true)}>
-              <PlusCircle className="h-4 w-4" /> Novo Serviço
-            </Button>
             <Button size="sm" variant="outline" onClick={() => setEditCliente({ ...selectedCliente })}><Pencil className="h-4 w-4" /></Button>
             <Button size="sm" variant="outline" className="text-destructive" onClick={() => { removeCliente(selectedCliente.id); setSelectedCliente(null); }}><Trash2 className="h-4 w-4" /></Button>
           </div>
         </div>
 
-        {/* Novo Serviço inline */}
+        {/* Novo Serviço inline form */}
         {showNovoServico && (
           <Card className="border-primary/40 bg-primary/5">
             <CardContent className="p-4 space-y-3">
@@ -227,7 +303,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
                   setOsDescricao(''); setOsValor(''); setShowNovoServico(false);
                   toast.success('Serviço criado!');
                 }}>
-                  <Plus className="h-4 w-4" /> Salvar
+                  <Plus className="h-4 w-4" /> Salvar OS
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => { setShowNovoServico(false); setOsDescricao(''); setOsValor(''); }}>Cancelar</Button>
               </div>
@@ -235,16 +311,16 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
           </Card>
         )}
 
+        {/* Tabs: Cadastro / Histórico */}
         <Tabs defaultValue="cadastro">
           <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="cadastro">📋 Cadastro</TabsTrigger>
-            <TabsTrigger value="historico">📂 Histórico ({cOrdens.length + cOrcamentos.length})</TabsTrigger>
+            <TabsTrigger value="cadastro">Cadastro</TabsTrigger>
+            <TabsTrigger value="historico">Histórico ({cOrdens.length + cOrcamentos.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="cadastro" className="mt-4">
             <Card>
               <CardContent className="p-4 space-y-3">
-                {selectedCliente.telefone && <p className="text-sm"><span className="font-medium text-muted-foreground">Telefone:</span> {selectedCliente.telefone}</p>}
                 {selectedCliente.email && <p className="text-sm"><span className="font-medium text-muted-foreground">E-mail:</span> {selectedCliente.email}</p>}
                 {selectedCliente.cpfCnpj && <p className="text-sm"><span className="font-medium text-muted-foreground">CPF/CNPJ:</span> {selectedCliente.cpfCnpj}</p>}
                 {selectedCliente.cep && <p className="text-sm"><span className="font-medium text-muted-foreground">CEP:</span> {formatCep(selectedCliente.cep)}</p>}
@@ -252,20 +328,12 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
                   <div className="space-y-1">
                     <p className="text-sm"><span className="font-medium text-muted-foreground">Endereço:</span> {enderecoCompleto}</p>
                     <div className="flex gap-2 pt-1">
-                      <a
-                        href={`https://waze.com/ul?q=${encodeURIComponent(enderecoCompleto)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/10 text-sky-600 text-xs font-bold hover:bg-sky-500/20 transition-colors"
-                      >
+                      <a href={`https://waze.com/ul?q=${encodeURIComponent(enderecoCompleto)}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/10 text-sky-600 text-xs font-bold hover:bg-sky-500/20">
                         <Navigation size={13} /> Waze
                       </a>
-                      <a
-                        href={`https://maps.google.com/?q=${encodeURIComponent(enderecoCompleto)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-bold hover:bg-emerald-500/20 transition-colors"
-                      >
+                      <a href={`https://maps.google.com/?q=${encodeURIComponent(enderecoCompleto)}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-bold hover:bg-emerald-500/20">
                         <Map size={13} /> Google Maps
                       </a>
                     </div>
@@ -280,7 +348,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
 
           <TabsContent value="historico" className="mt-4 space-y-4">
             {cOrdens.length === 0 && cOrcamentos.length === 0 ? (
-              <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum serviço ou orçamento registrado.</CardContent></Card>
+              <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Nenhum serviço ou orçamento registrado.</CardContent></Card>
             ) : (
               <>
                 {cOrdens.length > 0 && (
@@ -292,7 +360,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
                           <CardContent className="p-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                             <div className="min-w-0">
                               <p className="font-medium truncate">{os.descricao}</p>
-                              <p className="text-xs text-muted-foreground">{os.data} {os.valor > 0 && `• R$ ${os.valor.toFixed(2)}`}</p>
+                              <p className="text-xs text-muted-foreground">{os.data}{os.valor > 0 && ` • R$ ${os.valor.toFixed(2)}`}</p>
                             </div>
                             <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(os.status)}</Badge>
                           </CardContent>
@@ -311,7 +379,7 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
                           <Card key={orc.id}>
                             <CardContent className="p-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                               <div className="min-w-0">
-                                <p className="font-medium truncate">{orc.itens.length} itens</p>
+                                <p className="font-medium truncate">{orc.itens.length} item(ns)</p>
                                 <p className="text-xs text-muted-foreground">R$ {t.toFixed(2)} • {new Date(orc.criadoEm).toLocaleDateString('pt-BR')}</p>
                               </div>
                               <Badge variant="secondary" className="text-xs self-start sm:self-auto">{statusLabel(orc.status)}</Badge>
@@ -327,6 +395,14 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
           </TabsContent>
         </Tabs>
 
+        {/* Floating "Novo Serviço" button in detail view */}
+        <button
+          onClick={() => { setShowNovoServico(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          className="fixed bottom-20 right-4 z-50 flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-primary-foreground shadow-lg font-semibold transition-transform active:scale-95 hover:scale-105 lg:bottom-8 lg:right-8"
+        >
+          <PlusCircle className="h-5 w-5" /> Novo Serviço
+        </button>
+
         {/* Edit Dialog */}
         <Dialog open={!!editCliente} onOpenChange={() => setEditCliente(null)}>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -340,7 +416,9 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
                 </div>
                 <div><label className="mb-1 block text-sm font-medium">E-mail</label><Input value={editCliente.email} onChange={e => setEditCliente({ ...editCliente, email: e.target.value })} /></div>
                 <div className="grid grid-cols-3 gap-3">
-                  <div><label className="mb-1 block text-sm font-medium">CEP</label><Input value={editCliente.cep} onChange={e => { const f = formatCep(e.target.value); setEditCliente({ ...editCliente, cep: f }); handleCepChange(e.target.value, { setEndereco: v => setEditCliente(prev => prev ? { ...prev, endereco: v } : null), setBairro: v => setEditCliente(prev => prev ? { ...prev, bairro: v } : null), setCidade: v => setEditCliente(prev => prev ? { ...prev, cidade: v } : null), setEstado: v => setEditCliente(prev => prev ? { ...prev, estado: v } : null) }); }} maxLength={9} /></div>
+                  <div><label className="mb-1 block text-sm font-medium">CEP</label>
+                    <Input value={editCliente.cep} onChange={e => { const f = formatCep(e.target.value); setEditCliente({ ...editCliente, cep: f }); handleCepChange(e.target.value, { setEndereco: v => setEditCliente(prev => prev ? { ...prev, endereco: v } : null), setBairro: v => setEditCliente(prev => prev ? { ...prev, bairro: v } : null), setCidade: v => setEditCliente(prev => prev ? { ...prev, cidade: v } : null), setEstado: v => setEditCliente(prev => prev ? { ...prev, estado: v } : null) }); }} maxLength={9} />
+                  </div>
                   <div className="col-span-2"><label className="mb-1 block text-sm font-medium">Endereço</label><Input value={editCliente.endereco} onChange={e => setEditCliente({ ...editCliente, endereco: e.target.value })} /></div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -360,15 +438,31 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
     );
   }
 
-  // ==================== AGENDA + NOVO CLIENTE ====================
+  // ==================== LISTA DE CLIENTES ====================
   const [showNovoClienteDialog, setShowNovoClienteDialog] = useState(false);
 
   return (
-    <div className="space-y-4">
-      {/* Search bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input className="pl-9" placeholder="Buscar por nome ou CPF..." value={search} onChange={e => { setSearch(e.target.value); setActiveLetter(null); }} />
+    <div className="space-y-3">
+      {/* Sync banner — aparece se faz mais de 1 dia sem sincronizar */}
+      {hasContactPicker() && (!lastSync || Date.now() - new Date(lastSync).getTime() > 86_400_000) && clientes.length > 0 && (
+        <div className="flex items-center justify-between rounded-xl bg-primary/10 px-4 py-3">
+          <p className="text-xs text-primary font-medium">Sincronizar contatos do celular?</p>
+          <Button size="sm" variant="default" onClick={handleSyncContacts} disabled={syncing} className="gap-2 h-8 text-xs">
+            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Sincronizando...' : 'Sincronizar'}
+          </Button>
+        </div>
+      )}
+
+      {/* Search + sync button */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Buscar por nome ou CPF..." value={search} onChange={e => { setSearch(e.target.value); setActiveLetter(null); }} />
+        </div>
+        <Button variant="outline" size="icon" onClick={handleSyncContacts} disabled={syncing} title="Sincronizar com contatos do celular">
+          <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+        </Button>
       </div>
 
       {/* Client list */}
@@ -377,9 +471,14 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
           <CardContent className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
             <Users className="h-12 w-12 opacity-30" />
             <p className="text-sm">Nenhum cliente cadastrado</p>
-            <Button onClick={() => setShowNovoClienteDialog(true)}>
-              <Plus className="h-4 w-4" /> Novo Cliente
-            </Button>
+            <div className="flex gap-2 flex-wrap justify-center">
+              <Button onClick={() => setShowNovoClienteDialog(true)}>
+                <Plus className="h-4 w-4" /> Novo Cliente
+              </Button>
+              <Button variant="outline" onClick={handleSyncContacts} disabled={syncing}>
+                <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} /> Importar da Agenda
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -450,10 +549,19 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
       <Dialog open={showNovoClienteDialog} onOpenChange={open => { setShowNovoClienteDialog(open); if (!open) resetForm(); }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center justify-between">
               Novo Cliente
-              <Button type="button" variant="outline" size="sm" onClick={handleImportContact} className="ml-auto gap-2">
-                <Contact className="h-4 w-4" /> Importar da Agenda
+              <Button type="button" variant="outline" size="sm" onClick={async () => {
+                const contacts = await pickContacts();
+                const c = contacts[0];
+                if (!c) return;
+                setNome(c.name?.[0] || '');
+                setTelefone(c.tel?.[0] || '');
+                setEmail(c.email?.[0] || '');
+                if (c.address?.[0]) { setEndereco(c.address[0].street || ''); setCidade(c.address[0].city || ''); setEstado(c.address[0].region || ''); }
+                toast.success('Contato importado!');
+              }} className="gap-2 text-xs">
+                <Contact className="h-4 w-4" /> Importar
               </Button>
             </DialogTitle>
           </DialogHeader>
@@ -500,7 +608,9 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
               </div>
               <div><label className="mb-1 block text-sm font-medium">E-mail</label><Input value={editCliente.email} onChange={e => setEditCliente({ ...editCliente, email: e.target.value })} /></div>
               <div className="grid grid-cols-3 gap-3">
-                <div><label className="mb-1 block text-sm font-medium">CEP</label><Input value={editCliente.cep} onChange={e => { const f = formatCep(e.target.value); setEditCliente({ ...editCliente, cep: f }); handleCepChange(e.target.value, { setEndereco: v => setEditCliente(prev => prev ? { ...prev, endereco: v } : null), setBairro: v => setEditCliente(prev => prev ? { ...prev, bairro: v } : null), setCidade: v => setEditCliente(prev => prev ? { ...prev, cidade: v } : null), setEstado: v => setEditCliente(prev => prev ? { ...prev, estado: v } : null) }); }} maxLength={9} /></div>
+                <div><label className="mb-1 block text-sm font-medium">CEP</label>
+                  <Input value={editCliente.cep} onChange={e => { const f = formatCep(e.target.value); setEditCliente({ ...editCliente, cep: f }); handleCepChange(e.target.value, { setEndereco: v => setEditCliente(prev => prev ? { ...prev, endereco: v } : null), setBairro: v => setEditCliente(prev => prev ? { ...prev, bairro: v } : null), setCidade: v => setEditCliente(prev => prev ? { ...prev, cidade: v } : null), setEstado: v => setEditCliente(prev => prev ? { ...prev, estado: v } : null) }); }} maxLength={9} />
+                </div>
                 <div className="col-span-2"><label className="mb-1 block text-sm font-medium">Endereço</label><Input value={editCliente.endereco} onChange={e => setEditCliente({ ...editCliente, endereco: e.target.value })} /></div>
               </div>
               <div className="grid grid-cols-3 gap-3">
