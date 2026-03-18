@@ -147,7 +147,7 @@ export function useOrcamentos() {
           nome: m.nome, valor: Number(m.valor),
           unidade: m.unidade || 'un.', quantidade: m.quantidade || 1, custoUnitario: Number(m.custo_unitario || 0), margemLucro: Number(m.margem_lucro || 0),
         })),
-        maoDeObra: Number(d.mao_de_obra), horas: Number(d.horas || 0), dias: Number(d.dias || 0), km: Number(d.km || 0), desconto: Number(d.desconto || 0),
+        maoDeObra: Number(d.mao_de_obra), horas: Number((d as any).horas || 0), dias: Number((d as any).dias || 0), km: Number((d as any).km || 0), desconto: Number((d as any).desconto || 0),
         validade: d.validade, observacoes: d.observacoes,
         status: d.status as Orcamento['status'], assinatura: d.assinatura, criadoEm: d.created_at,
       })));
