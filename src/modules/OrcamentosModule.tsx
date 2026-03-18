@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { Orcamento, OrcamentoItem, OrcamentoMaterial, Cliente } from '@/types';
 import ClienteAutocomplete from '@/components/ClienteAutocomplete';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Trash2, FileText, Download, Minus, Navigation, Map } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -52,6 +51,7 @@ const emptyItem = (): OrcamentoItem => ({ descricao: '', quantidade: 1, valorUni
 const emptyMaterial = (): OrcamentoMaterial => ({ nome: '', valor: 0, unidade: 'un.', quantidade: 1, custoUnitario: 0, margemLucro: 0 });
 
 export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, updateOrcamento, empresaLogo, empresaNome, empresaAssinatura, empresaEndereco, valorHora, valorDia, valorKm }: Props) {
+  const [showForm, setShowForm] = useState(false);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [validade, setValidade] = useState('');
@@ -65,14 +65,12 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
   const [desconto, setDesconto] = useState('');
   const [showUnidadeDialog, setShowUnidadeDialog] = useState<{ type: 'item' | 'material'; index: number } | null>(null);
 
-  // Item helpers
   const addItem = () => setItens(prev => [...prev, emptyItem()]);
   const removeItem = (i: number) => setItens(prev => prev.filter((_, idx) => idx !== i));
   const updateItem = (i: number, updates: Partial<OrcamentoItem>) => {
     setItens(prev => prev.map((item, idx) => {
       if (idx !== i) return item;
       const updated = { ...item, ...updates };
-      // Auto-calculate selling price when cost or margin changes
       if (updates.custoUnitario !== undefined || updates.margemLucro !== undefined) {
         updated.valorUnitario = calcPrecoVenda(updated.custoUnitario, updated.margemLucro);
       }
@@ -80,7 +78,6 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
     }));
   };
 
-  // Material helpers
   const addMaterial = () => setMateriais(prev => [...prev, emptyMaterial()]);
   const removeMaterial = (i: number) => setMateriais(prev => prev.filter((_, idx) => idx !== i));
   const updateMaterial = (i: number, updates: Partial<OrcamentoMaterial>) => {
@@ -111,11 +108,15 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
   const descontoVal = parseFloat(desconto) || 0;
   const totalDeslocamento = totalHoras + totalDias + totalKm;
   const totalGeral = totalItens + totalMateriais + maoDeObraVal + totalDeslocamento - descontoVal;
-
-  // Cost totals for profit display
   const custoItens = itens.reduce((sum, item) => sum + item.quantidade * item.custoUnitario, 0);
   const custoMateriais = materiais.reduce((sum, m) => sum + m.quantidade * m.custoUnitario, 0);
   const lucroEstimado = totalGeral - custoItens - custoMateriais - maoDeObraVal;
+
+  const resetForm = () => {
+    setClienteNome(''); setClienteId(''); setValidade(''); setObservacoes('');
+    setMaoDeObra(''); setHoras(''); setDias(''); setKm(''); setDesconto('');
+    setItens([emptyItem()]); setMateriais([emptyMaterial()]);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,10 +127,8 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
       maoDeObra: maoDeObraVal + totalDeslocamento, horas: horasVal, dias: diasVal, km: kmVal,
       desconto: descontoVal, validade, observacoes,
     });
-    setClienteNome(''); setValidade(''); setObservacoes(''); setMaoDeObra('');
-    setHoras(''); setDias(''); setKm(''); setDesconto('');
-    setItens([emptyItem()]);
-    setMateriais([emptyMaterial()]);
+    resetForm();
+    setShowForm(false);
     toast.success('Orçamento criado!');
   };
 
@@ -203,14 +202,89 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
     `);
   };
 
+  const statusLabel = (s: string) => {
+    if (s === 'aprovado') return 'Aprovado';
+    if (s === 'recusado') return 'Recusado';
+    return 'Pendente';
+  };
+
+  const statusColor = (s: string) => {
+    if (s === 'aprovado') return 'bg-accent text-accent-foreground';
+    if (s === 'recusado') return 'bg-destructive/10 text-destructive';
+    return 'bg-secondary text-secondary-foreground';
+  };
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5 text-primary" /> Novo Orçamento</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-3">
+      {/* Orçamentos List */}
+      {orcamentos.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+            <FileText className="h-12 w-12 opacity-30" />
+            <p className="text-sm">Nenhum orçamento criado</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4" /> Novo Orçamento
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {orcamentos.map(orc => {
+            const t = orc.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0)
+              + (orc.materiais || []).reduce((s, m) => s + m.valor, 0)
+              + (orc.maoDeObra || 0) - (orc.desconto || 0);
+            return (
+              <Card key={orc.id}>
+                <CardContent className="p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold">{orc.clienteNome}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {orc.itens.length} serviço{orc.itens.length !== 1 ? 's' : ''} • R$ {t.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{new Date(orc.criadoEm).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <Badge className={statusColor(orc.status)}>{statusLabel(orc.status)}</Badge>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <select
+                      className="rounded border bg-background px-2 py-1 text-xs"
+                      value={orc.status}
+                      onChange={e => updateOrcamento(orc.id, { status: e.target.value as Orcamento['status'] })}
+                    >
+                      <option value="pendente">Pendente</option>
+                      <option value="aprovado">Aprovado</option>
+                      <option value="recusado">Recusado</option>
+                    </select>
+                    <Button size="sm" variant="outline" onClick={() => gerarPDF(orc)}>
+                      <Download className="h-4 w-4" /> PDF
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Floating add button */}
+      <button
+        onClick={() => setShowForm(true)}
+        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 hover:scale-105 lg:bottom-8 lg:right-8"
+        aria-label="Novo Orçamento"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      {/* New Orcamento Dialog */}
+      <Dialog open={showForm} onOpenChange={open => { setShowForm(open); if (!open) resetForm(); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Novo Orçamento</DialogTitle>
+            <DialogDescription>Preencha os serviços e materiais</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Cliente + Validade */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-sm font-medium">Cliente</label>
@@ -226,6 +300,30 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
               </div>
             </div>
 
+            {/* Ver rota */}
+            {(() => {
+              const clienteSelecionado = clientes.find(c => c.id === clienteId);
+              const endCliente = clienteSelecionado
+                ? [clienteSelecionado.endereco, clienteSelecionado.bairro, clienteSelecionado.cidade, clienteSelecionado.estado].filter(Boolean).join(', ')
+                : '';
+              if (!endCliente) return null;
+              const origem = encodeURIComponent(empresaEndereco || '');
+              const destino = encodeURIComponent(endCliente);
+              return (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground">Rota até o cliente:</span>
+                  <a href={`https://waze.com/ul?q=${destino}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/10 text-sky-600 text-xs font-bold hover:bg-sky-500/20">
+                    <Navigation size={13} /> Waze
+                  </a>
+                  <a href={`https://maps.google.com/maps?saddr=${origem}&daddr=${destino}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-bold hover:bg-emerald-500/20">
+                    <Map size={13} /> Google Maps
+                  </a>
+                </div>
+              );
+            })()}
+
             {/* Itens / Serviços */}
             <div>
               <label className="mb-2 block text-sm font-semibold">Serviços</label>
@@ -235,14 +333,12 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
                     <CardContent className="p-3 space-y-2">
                       <Input placeholder="Qual é o serviço?" value={item.descricao}
                         onChange={e => updateItem(i, { descricao: e.target.value })} />
-                      
                       <div className="flex items-center gap-2">
-                        <button type="button" className="rounded-md border px-3 py-1.5 text-sm bg-muted hover:bg-muted/80 transition-colors"
+                        <button type="button" className="rounded-md border px-3 py-1.5 text-sm bg-muted hover:bg-muted/80"
                           onClick={() => setShowUnidadeDialog({ type: 'item', index: i })}>
                           {item.unidade} <span className="text-muted-foreground text-xs ml-1">▼</span>
                         </button>
                       </div>
-
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="text-xs text-muted-foreground">Custo unitário</label>
@@ -250,15 +346,14 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
                             onChange={e => updateItem(i, { custoUnitario: parseFloat(e.target.value) || 0 })} />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground">Margem de lucro (%)</label>
+                          <label className="text-xs text-muted-foreground">Margem lucro (%)</label>
                           <Input type="number" step="0.1" placeholder="0%" value={item.margemLucro || ''}
                             onChange={e => updateItem(i, { margemLucro: parseFloat(e.target.value) || 0 })} />
                         </div>
                       </div>
-
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-xs text-muted-foreground">Preço de venda (por {item.unidade})</label>
+                          <label className="text-xs text-muted-foreground">Preço de venda</label>
                           <Input type="number" step="0.01" value={item.valorUnitario || ''}
                             onChange={e => updateItem(i, { valorUnitario: parseFloat(e.target.value) || 0 })}
                             className="font-medium" />
@@ -279,7 +374,6 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
                           </div>
                         </div>
                       </div>
-
                       <div className="flex items-center justify-between pt-1 border-t">
                         {itens.length > 1 && (
                           <Button type="button" size="sm" variant="ghost" className="text-destructive h-8 px-2"
@@ -310,14 +404,12 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
                     <CardContent className="p-3 space-y-2">
                       <Input placeholder="Nome do material" value={m.nome}
                         onChange={e => updateMaterial(i, { nome: e.target.value })} />
-                      
                       <div className="flex items-center gap-2">
-                        <button type="button" className="rounded-md border px-3 py-1.5 text-sm bg-muted hover:bg-muted/80 transition-colors"
+                        <button type="button" className="rounded-md border px-3 py-1.5 text-sm bg-muted hover:bg-muted/80"
                           onClick={() => setShowUnidadeDialog({ type: 'material', index: i })}>
                           {m.unidade} <span className="text-muted-foreground text-xs ml-1">▼</span>
                         </button>
                       </div>
-
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="text-xs text-muted-foreground">Custo unitário</label>
@@ -325,12 +417,11 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
                             onChange={e => updateMaterial(i, { custoUnitario: parseFloat(e.target.value) || 0 })} />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground">Margem de lucro (%)</label>
+                          <label className="text-xs text-muted-foreground">Margem lucro (%)</label>
                           <Input type="number" step="0.1" placeholder="0%" value={m.margemLucro || ''}
                             onChange={e => updateMaterial(i, { margemLucro: parseFloat(e.target.value) || 0 })} />
                         </div>
                       </div>
-
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <label className="text-xs text-muted-foreground">Preço venda (por {m.unidade})</label>
@@ -352,7 +443,6 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
                           </div>
                         </div>
                       </div>
-
                       <div className="flex items-center justify-between pt-1 border-t">
                         {materiais.length > 1 && (
                           <Button type="button" size="sm" variant="ghost" className="text-destructive h-8 px-2"
@@ -374,10 +464,10 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
               </Button>
             </div>
 
-            {/* Hora / Dia / KM */}
+            {/* Deslocamento e Tempo */}
             <div>
               <label className="mb-2 block text-sm font-semibold">Deslocamento e Tempo</label>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Horas (R$ {valorHora.toFixed(2)}/h)</label>
                   <Input type="number" step="0.5" value={horas} onChange={e => setHoras(e.target.value)} placeholder="0" />
@@ -389,44 +479,12 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
                   {diasVal > 0 && <p className="text-xs text-primary mt-1">= R$ {totalDias.toFixed(2)}</p>}
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">KM rodado (R$ {valorKm.toFixed(2)}/km)</label>
+                  <label className="text-xs text-muted-foreground">KM (R$ {valorKm.toFixed(2)}/km)</label>
                   <Input type="number" step="1" value={km} onChange={e => setKm(e.target.value)} placeholder="0" />
                   {kmVal > 0 && <p className="text-xs text-primary mt-1">= R$ {totalKm.toFixed(2)}</p>}
                 </div>
               </div>
-
-              {/* Botão Ver Rota */}
-              {(() => {
-                const clienteSelecionado = clientes.find(c => c.id === clienteId);
-                const endCliente = clienteSelecionado
-                  ? [clienteSelecionado.endereco, clienteSelecionado.bairro, clienteSelecionado.cidade, clienteSelecionado.estado]
-                      .filter(Boolean).join(', ')
-                  : '';
-                if (!endCliente) return null;
-                const origem = encodeURIComponent(empresaEndereco || '');
-                const destino = encodeURIComponent(endCliente);
-                return (
-                  <div className="flex gap-2 pt-1">
-                    <p className="text-xs text-muted-foreground self-center">Ver rota até o cliente:</p>
-                    <a
-                      href={`https://waze.com/ul?q=${destino}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/10 text-sky-600 text-xs font-bold hover:bg-sky-500/20 transition-colors"
-                    >
-                      <Navigation size={13} /> Waze
-                    </a>
-                    <a
-                      href={`https://maps.google.com/maps?saddr=${origem}&daddr=${destino}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-bold hover:bg-emerald-500/20 transition-colors"
-                    >
-                      <Map size={13} /> Google Maps
-                    </a>
-                  </div>
-                );
-              })()}
-
-              {(valorHora === 0 && valorDia === 0 && valorKm === 0) && (
+              {valorHora === 0 && valorDia === 0 && valorKm === 0 && (
                 <p className="text-xs text-muted-foreground mt-1">⚠️ Configure os valores em Configurações → Empresa</p>
               )}
             </div>
@@ -437,6 +495,12 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
               <Input type="number" step="0.01" value={maoDeObra} onChange={e => setMaoDeObra(e.target.value)} placeholder="0,00" />
             </div>
 
+            {/* Desconto */}
+            <div>
+              <label className="mb-1 block text-sm font-medium">Desconto (R$)</label>
+              <Input type="number" step="0.01" value={desconto} onChange={e => setDesconto(e.target.value)} placeholder="0,00" />
+            </div>
+
             {/* Totais */}
             <div className="rounded-lg bg-muted/50 p-3 text-sm space-y-1">
               <div className="flex justify-between"><span>Serviços:</span><span>R$ {totalItens.toFixed(2)}</span></div>
@@ -444,12 +508,6 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
               <div className="flex justify-between"><span>Mão de Obra:</span><span>R$ {(maoDeObraVal + totalDeslocamento).toFixed(2)}</span></div>
               {descontoVal > 0 && <div className="flex justify-between text-destructive"><span>Desconto:</span><span>- R$ {descontoVal.toFixed(2)}</span></div>}
               <div className="flex justify-between border-t pt-1 font-bold text-base"><span>Total Geral:</span><span>R$ {totalGeral.toFixed(2)}</span></div>
-              {(custoItens + custoMateriais) > 0 && (
-                <div className="flex justify-between border-t pt-1 text-xs">
-                  <span className="text-muted-foreground">Custo total:</span>
-                  <span className="text-muted-foreground">R$ {(custoItens + custoMateriais).toFixed(2)}</span>
-                </div>
-              )}
               {lucroEstimado > 0 && (
                 <div className="flex justify-between text-xs">
                   <span className="font-medium" style={{ color: 'hsl(var(--accent))' }}>Lucro estimado:</span>
@@ -458,39 +516,34 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
               )}
             </div>
 
-            {/* Desconto */}
-            <div>
-              <label className="mb-1 block text-sm font-medium">Desconto (R$)</label>
-              <Input type="number" step="0.01" value={desconto} onChange={e => setDesconto(e.target.value)} placeholder="0,00" />
-            </div>
-
+            {/* Observações */}
             <div>
               <label className="mb-1 block text-sm font-medium">Observações</label>
               <Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Condições, prazos..." />
             </div>
 
-            <Button type="submit" className="w-full"><Plus className="h-4 w-4" /> Criar Orçamento</Button>
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => { setShowForm(false); resetForm(); }}>Cancelar</Button>
+              <Button type="submit"><Plus className="h-4 w-4" /> Criar Orçamento</Button>
+            </DialogFooter>
           </form>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
 
       {/* Unidade Selection Dialog */}
       <Dialog open={!!showUnidadeDialog} onOpenChange={() => setShowUnidadeDialog(null)}>
         <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Selecione a unidade de medida</DialogTitle>
+            <DialogTitle>Unidade de medida</DialogTitle>
           </DialogHeader>
           <div className="space-y-1">
             {UNIDADES.map(u => (
               <button key={u.value} type="button"
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left hover:bg-muted transition-colors"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left hover:bg-muted"
                 onClick={() => {
                   if (showUnidadeDialog) {
-                    if (showUnidadeDialog.type === 'item') {
-                      updateItem(showUnidadeDialog.index, { unidade: u.value });
-                    } else {
-                      updateMaterial(showUnidadeDialog.index, { unidade: u.value });
-                    }
+                    if (showUnidadeDialog.type === 'item') updateItem(showUnidadeDialog.index, { unidade: u.value });
+                    else updateMaterial(showUnidadeDialog.index, { unidade: u.value });
                   }
                   setShowUnidadeDialog(null);
                 }}>
@@ -501,53 +554,11 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
               </button>
             ))}
           </div>
-          <div className="flex gap-2 pt-2">
-            <Button variant="outline" className="flex-1" onClick={() => setShowUnidadeDialog(null)}>Cancelar</Button>
-          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUnidadeDialog(null)}>Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Orçamentos List */}
-      <div>
-        <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
-          <FileText className="h-5 w-5" /> Orçamentos <Badge variant="secondary">{orcamentos.length}</Badge>
-        </h3>
-        {orcamentos.length === 0 ? (
-          <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum orçamento ainda.</CardContent></Card>
-        ) : (
-          <div className="space-y-2">
-            {orcamentos.map(orc => {
-              const t = orc.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0)
-                + (orc.materiais || []).reduce((s, m) => s + m.valor, 0)
-                + (orc.maoDeObra || 0);
-              return (
-                <Card key={orc.id}>
-                  <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
-                    <div>
-                      <p className="font-semibold">{orc.clienteNome}</p>
-                      <p className="text-sm text-muted-foreground">{orc.itens.length} serviços • R$ {t.toFixed(2)}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <select
-                        className="rounded border bg-background px-2 py-1 text-xs"
-                        value={orc.status}
-                        onChange={e => updateOrcamento(orc.id, { status: e.target.value as Orcamento['status'] })}
-                      >
-                        <option value="pendente">Pendente</option>
-                        <option value="aprovado">Aprovado</option>
-                        <option value="recusado">Recusado</option>
-                      </select>
-                      <Button size="sm" variant="outline" onClick={() => gerarPDF(orc)}>
-                        <Download className="h-4 w-4" /> PDF
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

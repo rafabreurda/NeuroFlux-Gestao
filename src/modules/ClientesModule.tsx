@@ -1,13 +1,12 @@
 import { useState, useMemo } from 'react';
 import { Cliente, OrdemServico, Orcamento } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, UserPlus, ArrowLeft, Navigation, Map, PlusCircle } from 'lucide-react';
+import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, ArrowLeft, Navigation, Map, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCpfCnpj, formatPhone, formatCep } from '@/lib/masks';
 
@@ -362,117 +361,131 @@ export default function ClientesModule({ clientes, addCliente, updateCliente, re
   }
 
   // ==================== AGENDA + NOVO CLIENTE ====================
+  const [showNovoClienteDialog, setShowNovoClienteDialog] = useState(false);
+
   return (
     <div className="space-y-4">
-      <Tabs defaultValue="agenda">
-        <TabsList className="w-full grid grid-cols-2">
-          <TabsTrigger value="agenda" className="gap-2"><Users className="h-4 w-4" /> Agenda</TabsTrigger>
-          <TabsTrigger value="novo" className="gap-2"><UserPlus className="h-4 w-4" /> Novo Cliente</TabsTrigger>
-        </TabsList>
+      {/* Search bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input className="pl-9" placeholder="Buscar por nome ou CPF..." value={search} onChange={e => { setSearch(e.target.value); setActiveLetter(null); }} />
+      </div>
 
-        <TabsContent value="novo" className="mt-4">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5 text-primary" /> Cadastrar Cliente</CardTitle>
-                <Button type="button" variant="outline" size="sm" onClick={handleImportContact} className="gap-2">
-                  <Contact className="h-4 w-4" />
-                  <span className="hidden sm:inline">Importar da Agenda</span>
-                  <span className="sm:hidden">Agenda</span>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                  <div><label className="mb-1 block text-sm font-medium">Nome</label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome completo" /></div>
-                  <div><label className="mb-1 block text-sm font-medium">CPF / CNPJ</label><Input value={cpfCnpj} onChange={e => setCpfCnpj(formatCpfCnpj(e.target.value))} placeholder="000.000.000-00" /></div>
-                  <div><label className="mb-1 block text-sm font-medium">Telefone</label><Input value={telefone} onChange={e => setTelefone(formatPhone(e.target.value))} placeholder="(00) 00000-0000" /></div>
-                  <div><label className="mb-1 block text-sm font-medium">E-mail</label><Input value={email} onChange={e => setEmail(e.target.value)} placeholder="email@exemplo.com" /></div>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium">CEP</label>
-                    <div className="relative">
-                      <Input value={cep} onChange={e => { setCep(formatCep(e.target.value)); handleCepChange(e.target.value); }} placeholder="00000-000" maxLength={9} />
-                      {loadingCep && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
+      {/* Client list */}
+      {clientes.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+            <Users className="h-12 w-12 opacity-30" />
+            <p className="text-sm">Nenhum cliente cadastrado</p>
+            <Button onClick={() => setShowNovoClienteDialog(true)}>
+              <Plus className="h-4 w-4" /> Novo Cliente
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex gap-2">
+          <div className="sticky top-0 flex flex-col items-center gap-0.5 py-1 self-start">
+            {ALPHABET.map(letter => (
+              <button
+                key={letter}
+                className={`h-6 w-6 rounded text-[10px] font-bold flex items-center justify-center transition-colors ${
+                  activeLetter === letter
+                    ? 'bg-primary text-primary-foreground'
+                    : availableLetters.has(letter)
+                      ? 'text-muted-foreground hover:bg-muted'
+                      : 'text-muted-foreground/25 pointer-events-none'
+                }`}
+                onClick={() => setActiveLetter(letter === activeLetter ? null : letter)}
+                disabled={!availableLetters.has(letter)}
+              >
+                {letter}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            {sortedFiltered.length === 0 ? (
+              <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum cliente encontrado.</CardContent></Card>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(groupedClientes).map(([letter, group]) => (
+                  <div key={letter}>
+                    <div className="sticky top-0 z-10 mb-2 flex items-center gap-2">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">{letter}</span>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
+                    <div className="space-y-1">
+                      {group.map(c => (
+                        <button
+                          key={c.id}
+                          onClick={() => setSelectedCliente(c)}
+                          className="flex w-full items-center justify-between rounded-lg border bg-card px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="min-w-0">
+                            <span className="font-medium truncate block">{c.nome}</span>
+                            {c.telefone && <span className="text-xs text-muted-foreground">{c.telefone}</span>}
+                          </div>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground ml-2" />
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <div className="sm:col-span-2"><label className="mb-1 block text-sm font-medium">Rua / Endereço</label><Input value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, número" /></div>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-                  <div><label className="mb-1 block text-sm font-medium">Bairro</label><Input value={bairro} onChange={e => setBairro(e.target.value)} placeholder="Bairro" /></div>
-                  <div><label className="mb-1 block text-sm font-medium">Cidade</label><Input value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Cidade" /></div>
-                  <div><label className="mb-1 block text-sm font-medium">Estado</label><Input value={estado} onChange={e => setEstado(e.target.value)} placeholder="UF" maxLength={2} /></div>
-                </div>
-                <Button type="submit" className="w-full sm:w-auto"><Plus className="h-4 w-4" /> Cadastrar</Button>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="agenda" className="mt-4 space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h3 className="flex items-center gap-2 text-lg font-semibold">
-              <Users className="h-5 w-5" /> Clientes <Badge variant="secondary">{clientes.length}</Badge>
-            </h3>
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Buscar por nome ou CPF..." value={search} onChange={e => { setSearch(e.target.value); setActiveLetter(null); }} />
-            </div>
+                ))}
+              </div>
+            )}
           </div>
+        </div>
+      )}
 
-          <div className="flex gap-2">
-            <div className="sticky top-0 flex flex-col items-center gap-0.5 py-1 self-start">
-              {ALPHABET.map(letter => (
-                <button
-                  key={letter}
-                  className={`h-6 w-6 rounded text-[10px] font-bold flex items-center justify-center transition-colors ${
-                    activeLetter === letter
-                      ? 'bg-primary text-primary-foreground'
-                      : availableLetters.has(letter)
-                        ? 'text-muted-foreground hover:bg-muted'
-                        : 'text-muted-foreground/25 pointer-events-none'
-                  }`}
-                  onClick={() => setActiveLetter(letter === activeLetter ? null : letter)}
-                  disabled={!availableLetters.has(letter)}
-                >
-                  {letter}
-                </button>
-              ))}
+      {/* Floating add button */}
+      <button
+        onClick={() => setShowNovoClienteDialog(true)}
+        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 hover:scale-105 lg:bottom-8 lg:right-8"
+        aria-label="Novo Cliente"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      {/* New Client Dialog */}
+      <Dialog open={showNovoClienteDialog} onOpenChange={open => { setShowNovoClienteDialog(open); if (!open) resetForm(); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Novo Cliente
+              <Button type="button" variant="outline" size="sm" onClick={handleImportContact} className="ml-auto gap-2">
+                <Contact className="h-4 w-4" /> Importar da Agenda
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={e => { handleSubmit(e); setShowNovoClienteDialog(false); }} className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div><label className="mb-1 block text-sm font-medium">Nome</label><Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Nome completo" /></div>
+              <div><label className="mb-1 block text-sm font-medium">CPF / CNPJ</label><Input value={cpfCnpj} onChange={e => setCpfCnpj(formatCpfCnpj(e.target.value))} placeholder="000.000.000-00" /></div>
+              <div><label className="mb-1 block text-sm font-medium">Telefone</label><Input value={telefone} onChange={e => setTelefone(formatPhone(e.target.value))} placeholder="(00) 00000-0000" /></div>
+              <div><label className="mb-1 block text-sm font-medium">E-mail</label><Input value={email} onChange={e => setEmail(e.target.value)} placeholder="email@exemplo.com" /></div>
             </div>
-
-            <div className="flex-1 min-w-0">
-              {sortedFiltered.length === 0 ? (
-                <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum cliente encontrado.</CardContent></Card>
-              ) : (
-                <div className="space-y-4">
-                  {Object.entries(groupedClientes).map(([letter, group]) => (
-                    <div key={letter}>
-                      <div className="sticky top-0 z-10 mb-2 flex items-center gap-2">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">{letter}</span>
-                        <div className="h-px flex-1 bg-border" />
-                      </div>
-                      <div className="space-y-1">
-                        {group.map(c => (
-                          <button
-                            key={c.id}
-                            onClick={() => setSelectedCliente(c)}
-                            className="flex w-full items-center justify-between rounded-lg border bg-card px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
-                          >
-                            <span className="font-medium truncate">{c.nome}</span>
-                            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium">CEP</label>
+                <div className="relative">
+                  <Input value={cep} onChange={e => { setCep(formatCep(e.target.value)); handleCepChange(e.target.value); }} placeholder="00000-000" maxLength={9} />
+                  {loadingCep && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
                 </div>
-              )}
+              </div>
+              <div className="col-span-2"><label className="mb-1 block text-sm font-medium">Rua / Endereço</label><Input value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, número" /></div>
             </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+            <div className="grid grid-cols-3 gap-3">
+              <div><label className="mb-1 block text-sm font-medium">Bairro</label><Input value={bairro} onChange={e => setBairro(e.target.value)} placeholder="Bairro" /></div>
+              <div><label className="mb-1 block text-sm font-medium">Cidade</label><Input value={cidade} onChange={e => setCidade(e.target.value)} placeholder="Cidade" /></div>
+              <div><label className="mb-1 block text-sm font-medium">Estado</label><Input value={estado} onChange={e => setEstado(e.target.value)} placeholder="UF" maxLength={2} /></div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => { setShowNovoClienteDialog(false); resetForm(); }}>Cancelar</Button>
+              <Button type="submit"><Plus className="h-4 w-4" /> Cadastrar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={!!editCliente} onOpenChange={() => setEditCliente(null)}>

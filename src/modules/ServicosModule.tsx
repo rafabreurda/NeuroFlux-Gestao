@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { OrdemServico, Cliente, Orcamento } from '@/types';
 import ClienteAutocomplete from '@/components/ClienteAutocomplete';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,6 +22,7 @@ interface Props {
 }
 
 export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem, updateOrdem, removeOrdem }: Props) {
+  const [showForm, setShowForm] = useState(false);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteId, setClienteId] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -35,7 +36,6 @@ export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem,
   const depoisRef = useRef<HTMLInputElement>(null);
   const [photoTarget, setPhotoTarget] = useState<{ id: string; type: 'antes' | 'depois' } | null>(null);
 
-  // Orçamentos do cliente selecionado
   const orcamentosCliente = orcamentos.filter(o =>
     o.clienteId === clienteId || o.clienteNome.toLowerCase() === clienteNome.toLowerCase()
   );
@@ -62,20 +62,10 @@ export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem,
       toast.error('Preencha o cliente e a descrição');
       return;
     }
-    addOrdem({
-      clienteId,
-      clienteNome,
-      descricao,
-      data,
-      codigo,
-      valor: parseFloat(valor) || 0,
-    });
-    setClienteNome('');
-    setClienteId('');
-    setDescricao('');
-    setCodigo('');
-    setValor('');
-    setOrcamentoId('');
+    addOrdem({ clienteId, clienteNome, descricao, data, codigo, valor: parseFloat(valor) || 0 });
+    setClienteNome(''); setClienteId(''); setDescricao('');
+    setCodigo(''); setValor(''); setOrcamentoId('');
+    setShowForm(false);
     toast.success('Ordem de serviço criada!');
   };
 
@@ -90,7 +80,6 @@ export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem,
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !photoTarget) return;
-
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
@@ -117,20 +106,108 @@ export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem,
   };
 
   return (
-    <div className="space-y-6">
-      {/* Hidden file inputs for camera */}
+    <div className="space-y-3">
+      {/* Hidden file inputs */}
       <input ref={antesRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
       <input ref={depoisRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
 
-      {/* New OS form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5 text-primary" />
-            Nova Ordem de Serviço
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      {/* OS List */}
+      {ordens.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+            <WrenchIcon className="h-12 w-12 opacity-30" />
+            <p className="text-sm">Nenhum serviço cadastrado</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4" /> Nova Ordem de Serviço
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {ordens.map(os => (
+            <Card key={os.id} className="overflow-hidden">
+              <CardContent className="p-4">
+                <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold">{os.clienteNome}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-1">{os.descricao}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {os.data}{os.codigo && ` • ${os.codigo}`}{os.valor > 0 && ` • R$ ${os.valor.toFixed(2)}`}
+                    </p>
+                  </div>
+                  <Badge className={statusColor(os.status)}>{statusLabel(os.status)}</Badge>
+                </div>
+
+                {/* Photo thumbnails */}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-lg border border-dashed p-2 text-center">
+                    {os.fotoAntes ? (
+                      <img src={os.fotoAntes} alt="Antes" className="mx-auto max-h-28 rounded object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-1 py-3 text-muted-foreground">
+                        <ImageIcon className="h-5 w-5" />
+                        <span className="text-xs">ANTES</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-lg border border-dashed p-2 text-center">
+                    {os.fotoDepois ? (
+                      <img src={os.fotoDepois} alt="Depois" className="mx-auto max-h-28 rounded object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-1 py-3 text-muted-foreground">
+                        <ImageIcon className="h-5 w-5" />
+                        <span className="text-xs">DEPOIS</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => handlePhoto(os.id, 'antes')}>
+                    <Camera className="h-4 w-4" /> Antes
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handlePhoto(os.id, 'depois')}>
+                    <Camera className="h-4 w-4" /> Depois
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setViewOrdem(os)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <select
+                    className="rounded border bg-background px-2 py-1 text-xs"
+                    value={os.status}
+                    onChange={e => updateOrdem(os.id, { status: e.target.value as OrdemServico['status'] })}
+                  >
+                    <option value="pendente">Pendente</option>
+                    <option value="em_andamento">Em andamento</option>
+                    <option value="concluido">Concluído</option>
+                  </select>
+                  <Button size="sm" variant="ghost" className="ml-auto text-destructive" onClick={() => removeOrdem(os.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Floating add button */}
+      <button
+        onClick={() => setShowForm(true)}
+        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95 hover:scale-105 lg:bottom-8 lg:right-8"
+        aria-label="Nova OS"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      {/* New OS Dialog */}
+      <Dialog open={showForm} onOpenChange={open => { setShowForm(open); if (!open) { setClienteNome(''); setClienteId(''); setDescricao(''); setCodigo(''); setValor(''); setOrcamentoId(''); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nova Ordem de Serviço</DialogTitle>
+            <DialogDescription>Preencha os dados do serviço</DialogDescription>
+          </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium">Cliente</label>
@@ -141,7 +218,6 @@ export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem,
               />
             </div>
 
-            {/* Vincular orçamento */}
             {orcamentosCliente.length > 0 && (
               <div>
                 <label className="mb-1 block text-sm font-medium flex items-center gap-1">
@@ -167,7 +243,7 @@ export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem,
                 {orcamentoVinculado && orcamentoVinculado.materiais?.length > 0 && (
                   <div className="mt-2 rounded-lg bg-muted/50 p-3">
                     <p className="mb-1 text-xs font-semibold flex items-center gap-1">
-                      <Package className="h-3.5 w-3.5" /> Materiais do orçamento:
+                      <Package className="h-3.5 w-3.5" /> Materiais:
                     </p>
                     <ul className="space-y-0.5">
                       {orcamentoVinculado.materiais.map((m, i) => (
@@ -185,13 +261,13 @@ export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem,
               <label className="mb-1 block text-sm font-medium">Descrição do serviço</label>
               <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Detalhe o serviço" />
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="mb-1 block text-sm font-medium">Data</label>
                 <Input type="date" value={data} onChange={e => setData(e.target.value)} />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium">Código (opcional)</label>
+                <label className="mb-1 block text-sm font-medium">Código</label>
                 <Input value={codigo} onChange={e => setCodigo(e.target.value)} placeholder="OS-001" />
               </div>
               <div>
@@ -199,97 +275,13 @@ export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem,
                 <Input type="number" step="0.01" value={valor} onChange={e => setValor(e.target.value)} placeholder="0,00" />
               </div>
             </div>
-            <Button type="submit" className="w-full sm:w-auto">
-              <Plus className="h-4 w-4" /> Salvar Serviço
-            </Button>
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => setShowForm(false)}>Cancelar</Button>
+              <Button type="submit"><Plus className="h-4 w-4" /> Salvar Serviço</Button>
+            </DialogFooter>
           </form>
-        </CardContent>
-      </Card>
-
-      {/* OS List */}
-      <div>
-        <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">
-          Serviços em Andamento
-          <Badge variant="secondary">{ordens.length}</Badge>
-        </h3>
-
-        {ordens.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
-              <Wrench className="h-10 w-10" />
-              <p>Nenhum serviço cadastrado ainda.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {ordens.map(os => (
-              <Card key={os.id} className="overflow-hidden">
-                <CardContent className="p-4">
-                  <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="font-semibold">{os.clienteNome}</p>
-                      <p className="text-sm text-muted-foreground">{os.descricao}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {os.data} {os.codigo && `• ${os.codigo}`} {os.valor > 0 && `• R$ ${os.valor.toFixed(2)}`}
-                      </p>
-                    </div>
-                    <Badge className={statusColor(os.status)}>{statusLabel(os.status)}</Badge>
-                  </div>
-
-                  {/* Photo thumbnails */}
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <div className="rounded-lg border border-dashed p-2 text-center">
-                      {os.fotoAntes ? (
-                        <img src={os.fotoAntes} alt="Antes" className="mx-auto max-h-32 rounded object-cover" />
-                      ) : (
-                        <div className="flex flex-col items-center gap-1 py-4 text-muted-foreground">
-                          <ImageIcon className="h-6 w-6" />
-                          <span className="text-xs">Foto ANTES</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="rounded-lg border border-dashed p-2 text-center">
-                      {os.fotoDepois ? (
-                        <img src={os.fotoDepois} alt="Depois" className="mx-auto max-h-32 rounded object-cover" />
-                      ) : (
-                        <div className="flex flex-col items-center gap-1 py-4 text-muted-foreground">
-                          <ImageIcon className="h-6 w-6" />
-                          <span className="text-xs">Foto DEPOIS</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handlePhoto(os.id, 'antes')}>
-                      <Camera className="h-4 w-4" /> Foto ANTES
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => handlePhoto(os.id, 'depois')}>
-                      <Camera className="h-4 w-4" /> Foto DEPOIS
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setViewOrdem(os)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <select
-                      className="rounded border bg-background px-2 py-1 text-xs"
-                      value={os.status}
-                      onChange={e => updateOrdem(os.id, { status: e.target.value as OrdemServico['status'] })}
-                    >
-                      <option value="pendente">Pendente</option>
-                      <option value="em_andamento">Em andamento</option>
-                      <option value="concluido">Concluído</option>
-                    </select>
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeOrdem(os.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
+        </DialogContent>
+      </Dialog>
 
       {/* View Dialog */}
       <Dialog open={!!viewOrdem} onOpenChange={() => setViewOrdem(null)}>
@@ -331,7 +323,7 @@ export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem,
   );
 }
 
-function Wrench(props: React.SVGProps<SVGSVGElement>) {
+function WrenchIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
