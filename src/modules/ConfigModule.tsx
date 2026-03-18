@@ -98,7 +98,7 @@ function SignaturePad({ value, onChange }: { value: string | null; onChange: (v:
   );
 }
 
-export default function ConfigModule({ config, updateConfig, profile, updateProfile, isAdmin }: Props) {
+export default function ConfigModule({ config, updateConfig, profile, updateProfile }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [profileForm, setProfileForm] = useState({
     nome: '', cpf: '', cnpj: '', telefone: '', data_nascimento: '',
