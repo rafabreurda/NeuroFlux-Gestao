@@ -85,8 +85,8 @@ const Index = ({ user, signOut }: Props) => {
   if (isAdmin) {
     return (
       <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome} isAdmin>
-        {activeModule === 'config' && <UserManagement initialTab="usuarios" />}
-        {activeModule === 'faturamento' && <UserManagement initialTab="dashboard" />}
+        {activeModule === 'config' && <UserManagement />}
+        {activeModule === 'faturamento' && <AdminDashboard />}
       </AppLayout>
     );
   }

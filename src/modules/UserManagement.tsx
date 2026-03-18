@@ -206,12 +206,6 @@ export default function UserManagement() {
   const getPlanoForm = (userId: string) => planoForm[userId] || { nomePlano: '', valor: '', dataInicio: new Date().toISOString().split('T')[0], dataVencimento: '', observacoes: '' };
   const setPlano = (userId: string, key: string, val: string) => setPlanoForm(prev => ({ ...prev, [userId]: { ...getPlanoForm(userId), [key]: val } }));
 
-  // Expiring plans for alerts
-  const expiringPlans = users.flatMap(u =>
-    (u.planos || [])
-      .filter(p => diasParaVencimento(p.data_vencimento) <= 7 && diasParaVencimento(p.data_vencimento) >= 0)
-      .map(p => ({ ...p, userName: u.nome || u.username }))
-  );
 
   return (
     <div className="space-y-4">
