@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { OrdemServico, Cliente, Orcamento } from '@/types';
+import { OrdemServico, Cliente, Orcamento, ServicoCatalogo } from '@/types';
 import ClienteAutocomplete from '@/components/ClienteAutocomplete';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
