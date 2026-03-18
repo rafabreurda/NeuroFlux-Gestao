@@ -1,4 +1,4 @@
-// Admin users management v3 - plans, contracts, password visibility
+// Admin users management v4 - case-insensitive, plans dashboard
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 function usernameToEmail(username: string): string {
-  return `${username.toLowerCase().replace(/\s+/g, '.')}@neuroflux.app`;
+  return `${username.toLowerCase().trim().replace(/\s+/g, '.')}@neuroflux.app`;
 }
 
 serve(async (req) => {
@@ -52,10 +52,15 @@ serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if (password.length < 6) {
+        return new Response(JSON.stringify({ error: "Senha deve ter no mínimo 6 caracteres" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const email = usernameToEmail(username);
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email, password, email_confirm: true,
-        user_metadata: { nome: nome || username, username },
+        user_metadata: { nome: nome || username, username: username.toLowerCase().trim() },
       });
       if (createError) {
         const msg = createError.message.includes("already been registered") ? "Este nome de usuário já está em uso" : createError.message;
@@ -98,6 +103,11 @@ serve(async (req) => {
     // ============ RESET PASSWORD ============
     if (action === "reset-password") {
       const { userId, newPassword } = params;
+      if (!newPassword || newPassword.length < 6) {
+        return new Response(JSON.stringify({ error: "Senha deve ter no mínimo 6 caracteres" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
       if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       await supabaseAdmin.from("profiles").update({ senha_texto: newPassword }).eq("user_id", userId);
@@ -139,7 +149,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ============ ADD CONTRACT METADATA ============
+    // ============ ADD CONTRACT ============
     if (action === "add-contrato") {
       const { userId, nomeArquivo, storagePath } = params;
       const { data, error } = await supabaseAdmin.from("contratos_usuarios").insert({
@@ -158,12 +168,21 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ============ GET CONTRACT SIGNED URL ============
+    // ============ GET CONTRACT URL ============
     if (action === "get-contrato-url") {
       const { storagePath } = params;
       const { data, error } = await supabaseAdmin.storage.from("contratos").createSignedUrl(storagePath, 3600);
       if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       return new Response(JSON.stringify({ success: true, url: data.signedUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ============ SET ADMIN PASSWORD ============
+    if (action === "set-admin-password") {
+      const { userId, password } = params;
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password });
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      await supabaseAdmin.from("profiles").update({ senha_texto: password }).eq("user_id", userId);
+      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     return new Response(JSON.stringify({ error: "Ação desconhecida" }), {

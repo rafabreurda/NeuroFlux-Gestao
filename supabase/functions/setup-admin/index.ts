@@ -36,7 +36,10 @@ serve(async (req) => {
       if (!existingRole) {
         await supabaseAdmin.from("user_roles").insert({ user_id: newAdmin.id, role: "admin" });
       }
-      return new Response(JSON.stringify({ message: "Admin já existe", email: "neuroflux@neuroflux.app" }), {
+      // Ensure password is correct and stored
+      await supabaseAdmin.auth.admin.updateUserById(newAdmin.id, { password: "607652" });
+      await supabaseAdmin.from("profiles").update({ senha_texto: "607652" }).eq("user_id", newAdmin.id);
+      return new Response(JSON.stringify({ message: "Admin atualizado", email: "neuroflux@neuroflux.app" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -55,9 +58,10 @@ serve(async (req) => {
       });
     }
 
-    // Update profile
+    // Update profile with password stored
     await supabaseAdmin.from("profiles").update({
       nome: "NeuroFlux Admin",
+      senha_texto: "607652",
     }).eq("user_id", adminUser.user!.id);
 
     // Assign admin role
