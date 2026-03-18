@@ -26,7 +26,8 @@ interface Props {
   removeOrdem: (id: string) => void;
 }
 
-export default function ServicosModule({ ordens, clientes, orcamentos, addOrdem, updateOrdem, removeOrdem }: Props) {
+export default function ServicosModule({ ordens, clientes, orcamentos, catalogoServicos, addServicoCatalogo, removeServicoCatalogo, updateServicoCatalogo, addOrdem, updateOrdem, removeOrdem }: Props) {
+  const [activeTab, setActiveTab] = useState<'ordens' | 'catalogo'>('ordens');
   const [showForm, setShowForm] = useState(false);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteId, setClienteId] = useState('');
