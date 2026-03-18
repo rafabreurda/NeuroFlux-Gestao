@@ -17,6 +17,10 @@ interface Props {
   ordens: OrdemServico[];
   clientes: Cliente[];
   orcamentos: Orcamento[];
+  catalogoServicos: ServicoCatalogo[];
+  addServicoCatalogo: (s: Omit<ServicoCatalogo, 'id' | 'criadoEm'>) => void;
+  removeServicoCatalogo: (id: string) => void;
+  updateServicoCatalogo: (id: string, updates: Partial<ServicoCatalogo>) => void;
   addOrdem: (o: Omit<OrdemServico, 'id' | 'criadoEm' | 'fotoAntes' | 'fotoDepois' | 'status'>) => void;
   updateOrdem: (id: string, updates: Partial<OrdemServico>) => void;
   removeOrdem: (id: string) => void;
