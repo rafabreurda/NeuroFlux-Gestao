@@ -562,7 +562,8 @@ export default function UserManagement() {
                             </Button>
                             <Button size="sm" variant="destructive" onClick={() => handleDelete(u.user_id, u.nome || u.username)}>
                               <Trash2 className="h-4 w-4 mr-1" /> Excluir
-                          </Button>
+                            </Button>
+                          </div>
                         </TabsContent>
 
                         {/* ===== PLANOS ===== */}
