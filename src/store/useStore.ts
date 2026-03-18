@@ -125,6 +125,9 @@ export function useOrdensServico() {
     if (updates.fotoDepois !== undefined) dbUpdates.foto_depois = updates.fotoDepois;
     if (updates.descricao !== undefined) dbUpdates.descricao = updates.descricao;
     if (updates.valor !== undefined) dbUpdates.valor = updates.valor;
+    if (updates.materiais !== undefined) dbUpdates.materiais_json = updates.materiais;
+    if (updates.duracaoHoras !== undefined) dbUpdates.duracao_horas = updates.duracaoHoras;
+    if (updates.dataAgendamento !== undefined) dbUpdates.data_agendamento = updates.dataAgendamento;
     const { error } = await supabase.from('ordens_servico').update(dbUpdates).eq('id', id);
     if (error) { toast.error('Erro ao atualizar OS'); return; }
     setOrdens(prev => prev.map(o => o.id === id ? { ...o, ...updates } : o));
