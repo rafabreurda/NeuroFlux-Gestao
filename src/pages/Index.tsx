@@ -75,7 +75,7 @@ const Index = ({ user, signOut }: Props) => {
   return (
     <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome}>
       {activeModule === 'servicos' && (
-        <ServicosModule ordens={ordens} clientes={clientes} orcamentos={orcamentos} addOrdem={addOrdem} updateOrdem={updateOrdem} removeOrdem={removeOrdem} />
+        <ServicosModule ordens={ordens} clientes={clientes} orcamentos={orcamentos} catalogoServicos={catalogoServicos} addServicoCatalogo={addServicoCatalogo} removeServicoCatalogo={removeServicoCatalogo} updateServicoCatalogo={updateServicoCatalogo} addOrdem={addOrdem} updateOrdem={updateOrdem} removeOrdem={removeOrdem} />
       )}
       {activeModule === 'clientes' && (
         <ClientesModule clientes={clientes} addCliente={addCliente} updateCliente={updateCliente} removeCliente={removeCliente} ordens={ordens} orcamentos={orcamentos} addOrdem={addOrdem} />

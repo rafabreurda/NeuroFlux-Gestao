@@ -288,6 +288,35 @@ export default function ServicosModule({ ordens, clientes, orcamentos, catalogoS
               </div>
             )}
 
+            {catalogoServicos.length > 0 && (
+              <div>
+                <label className="mb-1 block text-sm font-medium flex items-center gap-1">
+                  <Package className="h-4 w-4 text-primary" /> Selecionar do Catálogo (opcional)
+                </label>
+                <select
+                  className="w-full rounded border bg-background px-3 py-2 text-sm"
+                  value=""
+                  onChange={e => {
+                    const svc = catalogoServicos.find(s => s.id === e.target.value);
+                    if (svc) {
+                      setDescricao(prev => prev ? `${prev}\n${svc.nome}` : svc.nome);
+                      setValor(prev => {
+                        const current = parseFloat(prev) || 0;
+                        return (current + svc.valor).toFixed(2);
+                      });
+                    }
+                  }}
+                >
+                  <option value="">Escolha um serviço...</option>
+                  {catalogoServicos.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.nome} — R$ {s.valor.toFixed(2)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="mb-1 block text-sm font-medium">Descrição do serviço</label>
               <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Detalhe o serviço" />
