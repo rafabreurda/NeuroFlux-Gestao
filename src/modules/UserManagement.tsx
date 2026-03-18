@@ -66,8 +66,8 @@ function diasParaVencimento(dataVencimento: string): number {
   return Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export default function UserManagement() {
-  const [mainTab, setMainTab] = useState<'dashboard' | 'usuarios'>('dashboard');
+export default function UserManagement({ initialTab = 'dashboard' }: { initialTab?: 'dashboard' | 'usuarios' } = {}) {
+  const [mainTab, setMainTab] = useState<'dashboard' | 'usuarios'>(initialTab);
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
