@@ -556,8 +556,12 @@ export default function UserManagement() {
                             </Button>
                           </div>
 
-                          <Button size="sm" variant="destructive" onClick={() => handleDelete(u.user_id, u.nome || u.username)}>
-                            <Trash2 className="h-4 w-4 mr-1" /> Excluir Usuário
+                          <div className="flex gap-2">
+                            <Button size="sm" variant={u.blocked ? 'outline' : 'secondary'} onClick={() => handleToggleBlock(u.user_id, u.blocked)}>
+                              {u.blocked ? <><CheckCircle className="h-4 w-4 mr-1" /> Desbloquear</> : <><Ban className="h-4 w-4 mr-1" /> Bloquear</>}
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDelete(u.user_id, u.nome || u.username)}>
+                              <Trash2 className="h-4 w-4 mr-1" /> Excluir
                           </Button>
                         </TabsContent>
 
