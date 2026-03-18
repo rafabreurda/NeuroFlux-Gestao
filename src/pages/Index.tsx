@@ -14,17 +14,22 @@ import {
 import { useProfile } from '@/hooks/useProfile';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useScheduleNotifications } from '@/hooks/useScheduleNotifications';
-import { Users, Wrench, FileText, Handshake, DollarSign, Settings } from 'lucide-react';
+import { Users, Wrench, FileText, Handshake, DollarSign, Settings, LayoutDashboard, ShieldCheck } from 'lucide-react';
 
 type ModuleKey = 'home' | 'servicos' | 'orcamentos' | 'clientes' | 'faturamento' | 'custos' | 'config';
 
-const menuItems: { key: Exclude<ModuleKey, 'home'>; label: string; icon: React.ReactNode; color: string }[] = [
+const userMenuItems: { key: Exclude<ModuleKey, 'home'>; label: string; icon: React.ReactNode; color: string }[] = [
   { key: 'clientes', label: 'Clientes', icon: <Users className="h-8 w-8" />, color: 'from-blue-500 to-blue-700' },
   { key: 'servicos', label: 'Serviços', icon: <Wrench className="h-8 w-8" />, color: 'from-emerald-500 to-emerald-700' },
   { key: 'orcamentos', label: 'Orçamentos', icon: <FileText className="h-8 w-8" />, color: 'from-amber-500 to-amber-700' },
   { key: 'custos', label: 'Parceiros', icon: <Handshake className="h-8 w-8" />, color: 'from-purple-500 to-purple-700' },
   { key: 'faturamento', label: 'Financeiro', icon: <DollarSign className="h-8 w-8" />, color: 'from-rose-500 to-rose-700' },
   { key: 'config', label: 'Configurações', icon: <Settings className="h-8 w-8" />, color: 'from-slate-500 to-slate-700' },
+];
+
+const adminMenuItems: { key: Exclude<ModuleKey, 'home'>; label: string; icon: React.ReactNode; color: string }[] = [
+  { key: 'config', label: 'Gestão de Usuários', icon: <ShieldCheck className="h-8 w-8" />, color: 'from-indigo-500 to-indigo-700' },
+  { key: 'faturamento', label: 'Dashboard Financeiro', icon: <LayoutDashboard className="h-8 w-8" />, color: 'from-rose-500 to-rose-700' },
 ];
 
 interface Props {
@@ -53,7 +58,7 @@ const Index = ({ user, signOut }: Props) => {
           {isAdmin && <span className="mt-1 rounded-full bg-primary/10 px-3 py-0.5 text-xs font-medium text-primary">Administrador</span>}
         </div>
         <div className="mx-auto grid w-full max-w-lg grid-cols-2 gap-3 px-4 pb-24 sm:grid-cols-3 sm:gap-4">
-          {menuItems.map(item => (
+          {(isAdmin ? adminMenuItems : userMenuItems).map(item => (
             <button
               key={item.key}
               onClick={() => setActiveModule(item.key)}
@@ -74,7 +79,7 @@ const Index = ({ user, signOut }: Props) => {
   }
 
   return (
-    <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome}>
+    <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome} isAdmin={isAdmin}>
       {activeModule === 'servicos' && (
         <ServicosModule ordens={ordens} clientes={clientes} orcamentos={orcamentos} catalogoServicos={catalogoServicos} addServicoCatalogo={addServicoCatalogo} removeServicoCatalogo={removeServicoCatalogo} updateServicoCatalogo={updateServicoCatalogo} addOrdem={addOrdem} updateOrdem={updateOrdem} removeOrdem={removeOrdem} />
       )}

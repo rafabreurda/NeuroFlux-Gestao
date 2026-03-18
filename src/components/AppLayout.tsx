@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
-  Wrench, FileText, Users, DollarSign, Settings, Menu, X, Camera, Receipt, ChevronRight, Home, Handshake
+  Wrench, FileText, Users, Settings, Menu, X, Camera, Receipt, ChevronRight, Home, Handshake, ShieldCheck, LayoutDashboard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BottomNav from '@/components/BottomNav';
@@ -14,9 +14,10 @@ interface Props {
   children: React.ReactNode;
   signOut?: () => Promise<void>;
   userName?: string;
+  isAdmin?: boolean;
 }
 
-const modules: { key: ModuleKey; label: string; icon: React.ReactNode }[] = [
+const userModules: { key: ModuleKey; label: string; icon: React.ReactNode }[] = [
   { key: 'home', label: 'Início', icon: <Home className="h-5 w-5" /> },
   { key: 'clientes', label: 'Clientes', icon: <Users className="h-5 w-5" /> },
   { key: 'servicos', label: 'Serviços e OS', icon: <Wrench className="h-5 w-5" /> },
@@ -26,17 +27,22 @@ const modules: { key: ModuleKey; label: string; icon: React.ReactNode }[] = [
   { key: 'config', label: 'Configurações', icon: <Settings className="h-5 w-5" /> },
 ];
 
-export default function AppLayout({ activeModule, onModuleChange, children, signOut, userName }: Props) {
+const adminModules: { key: ModuleKey; label: string; icon: React.ReactNode }[] = [
+  { key: 'home', label: 'Início', icon: <Home className="h-5 w-5" /> },
+  { key: 'config', label: 'Gestão de Usuários', icon: <ShieldCheck className="h-5 w-5" /> },
+  { key: 'faturamento', label: 'Dashboard Financeiro', icon: <LayoutDashboard className="h-5 w-5" /> },
+];
+
+export default function AppLayout({ activeModule, onModuleChange, children, signOut, userName, isAdmin }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const modules = isAdmin ? adminModules : userModules;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Overlay mobile */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar — desktop only */}
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-sidebar text-sidebar-foreground lg:flex lg:static'
@@ -46,7 +52,9 @@ export default function AppLayout({ activeModule, onModuleChange, children, sign
           <Camera className="h-7 w-7 text-sidebar-primary" />
           <div>
             <h1 className="text-base font-bold text-sidebar-primary-foreground">NeuroFlux Gestão</h1>
-            <p className="text-[10px] uppercase tracking-widest text-sidebar-foreground/60">Sistema Inteligente</p>
+            <p className="text-[10px] uppercase tracking-widest text-sidebar-foreground/60">
+              {isAdmin ? 'Painel Admin' : 'Sistema Inteligente'}
+            </p>
           </div>
         </div>
 
@@ -78,7 +86,6 @@ export default function AppLayout({ activeModule, onModuleChange, children, sign
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-14 items-center gap-3 border-b bg-card px-4 lg:px-6">
           <Button variant="ghost" size="icon" onClick={() => onModuleChange('home')} className="shrink-0">
@@ -94,8 +101,7 @@ export default function AppLayout({ activeModule, onModuleChange, children, sign
         </main>
       </div>
 
-      {/* Bottom nav — mobile & tablet only */}
-      <BottomNav activeModule={activeModule} onModuleChange={onModuleChange} />
+      <BottomNav activeModule={activeModule} onModuleChange={onModuleChange} isAdmin={isAdmin} />
     </div>
   );
 }

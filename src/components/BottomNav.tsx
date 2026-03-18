@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import {
-  Home, Users, Wrench, FileText, Handshake, DollarSign, Settings
+  Home, Users, Wrench, FileText, Handshake, DollarSign, Settings, ShieldCheck, LayoutDashboard
 } from 'lucide-react';
 
 type ModuleKey = 'home' | 'servicos' | 'orcamentos' | 'clientes' | 'faturamento' | 'custos' | 'config';
@@ -8,9 +8,10 @@ type ModuleKey = 'home' | 'servicos' | 'orcamentos' | 'clientes' | 'faturamento'
 interface Props {
   activeModule: ModuleKey;
   onModuleChange: (m: ModuleKey) => void;
+  isAdmin?: boolean;
 }
 
-const navItems: { key: ModuleKey; label: string; icon: React.ReactNode }[] = [
+const userNavItems: { key: ModuleKey; label: string; icon: React.ReactNode }[] = [
   { key: 'home', label: 'Início', icon: <Home className="h-5 w-5" /> },
   { key: 'clientes', label: 'Clientes', icon: <Users className="h-5 w-5" /> },
   { key: 'servicos', label: 'Serviços', icon: <Wrench className="h-5 w-5" /> },
@@ -20,7 +21,15 @@ const navItems: { key: ModuleKey; label: string; icon: React.ReactNode }[] = [
   { key: 'config', label: 'Config', icon: <Settings className="h-5 w-5" /> },
 ];
 
-export default function BottomNav({ activeModule, onModuleChange }: Props) {
+const adminNavItems: { key: ModuleKey; label: string; icon: React.ReactNode }[] = [
+  { key: 'home', label: 'Início', icon: <Home className="h-5 w-5" /> },
+  { key: 'config', label: 'Usuários', icon: <ShieldCheck className="h-5 w-5" /> },
+  { key: 'faturamento', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
+];
+
+export default function BottomNav({ activeModule, onModuleChange, isAdmin }: Props) {
+  const navItems = isAdmin ? adminNavItems : userNavItems;
+
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t bg-card shadow-[0_-2px_10px_rgba(0,0,0,0.08)] lg:hidden">
       <div className="flex items-center justify-around px-1 py-1">
@@ -45,7 +54,6 @@ export default function BottomNav({ activeModule, onModuleChange }: Props) {
           </button>
         ))}
       </div>
-      {/* Safe area for phones with gesture bars */}
       <div className="h-[env(safe-area-inset-bottom)]" />
     </nav>
   );
