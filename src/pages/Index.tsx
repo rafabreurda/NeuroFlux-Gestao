@@ -39,6 +39,7 @@ const Index = ({ user, signOut }: Props) => {
   const { recibos, addRecibo } = useRecibos();
   const { custos, addCusto, removeCusto } = useCustos();
   const { config, updateConfig } = useEmpresaConfig();
+  const { servicos: catalogoServicos, addServico: addServicoCatalogo, removeServico: removeServicoCatalogo, updateServico: updateServicoCatalogo } = useServicosCatalogo();
   const { profile, updateProfile } = useProfile(user?.id);
   const { isAdmin } = useUserRole(user?.id);
 
