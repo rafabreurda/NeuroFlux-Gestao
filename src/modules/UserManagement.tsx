@@ -479,17 +479,26 @@ export default function UserManagement() {
             const planosVencendo = (u.planos || []).filter(p => diasParaVencimento(p.data_vencimento) <= 7 && diasParaVencimento(p.data_vencimento) >= 0);
 
             return (
-              <Card key={u.user_id}>
+              <Card key={u.user_id} className={u.blocked ? 'opacity-60 border-destructive/30' : ''}>
                 <CardContent className="p-3">
                   <button
                     className="flex w-full items-center justify-between text-left"
                     onClick={() => setExpandedUser(isExpanded ? null : u.user_id)}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div>
-                        <p className="font-medium">{u.nome || u.username || 'Sem nome'}</p>
+                        <p className="font-medium flex items-center gap-1.5">
+                          {u.nome || u.username || 'Sem nome'}
+                          {u.blocked && <Ban className="h-4 w-4 text-destructive" />}
+                        </p>
                         <p className="text-xs text-muted-foreground">Login: <span className="font-mono">{u.username}</span></p>
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> Último acesso: {formatLastSeen(u.last_seen)}
+                        </p>
                       </div>
+                      {u.blocked && (
+                        <Badge variant="destructive" className="text-[10px]">Bloqueado</Badge>
+                      )}
                       {planosVencendo.length > 0 && (
                         <Badge variant="destructive" className="text-[10px]">
                           <AlertTriangle className="h-3 w-3 mr-0.5" /> Vencendo
