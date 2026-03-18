@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, ArrowLeft, Navigation, Map, PlusCircle, RefreshCw, PhoneCall } from 'lucide-react';
+import { Plus, Trash2, Users, Search, ChevronRight, Wrench, FileText, Contact, Loader2, Pencil, ArrowLeft, Navigation, Map, PlusCircle, RefreshCw, PhoneCall, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCpfCnpj, formatPhone, formatCep } from '@/lib/masks';
 
