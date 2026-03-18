@@ -373,6 +373,7 @@ export type Database = {
         Row: {
           assinatura: string | null
           bairro: string | null
+          blocked: boolean
           cidade: string | null
           cnpj: string | null
           cpf: string | null
@@ -383,6 +384,7 @@ export type Database = {
           endereco: string | null
           estado: string | null
           id: string
+          last_seen: string | null
           logo: string | null
           nome: string
           senha_texto: string | null
@@ -393,6 +395,7 @@ export type Database = {
         Insert: {
           assinatura?: string | null
           bairro?: string | null
+          blocked?: boolean
           cidade?: string | null
           cnpj?: string | null
           cpf?: string | null
@@ -403,6 +406,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           id?: string
+          last_seen?: string | null
           logo?: string | null
           nome?: string
           senha_texto?: string | null
@@ -413,6 +417,7 @@ export type Database = {
         Update: {
           assinatura?: string | null
           bairro?: string | null
+          blocked?: boolean
           cidade?: string | null
           cnpj?: string | null
           cpf?: string | null
@@ -423,6 +428,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           id?: string
+          last_seen?: string | null
           logo?: string | null
           nome?: string
           senha_texto?: string | null
