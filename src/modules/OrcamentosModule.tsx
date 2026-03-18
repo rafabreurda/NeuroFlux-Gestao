@@ -45,6 +45,7 @@ interface Props {
   valorHora: number;
   valorDia: number;
   valorKm: number;
+  catalogoServicos: ServicoCatalogo[];
 }
 
 const emptyItem = (): OrcamentoItem => ({ descricao: '', quantidade: 1, valorUnitario: 0, unidade: 'un.', custoUnitario: 0, margemLucro: 0 });
