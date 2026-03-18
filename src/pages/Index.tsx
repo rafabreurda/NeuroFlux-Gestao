@@ -8,6 +8,7 @@ import FaturamentoModule from '@/modules/FaturamentoModule';
 import CustosModule from '@/modules/CustosModule';
 import ConfigModule from '@/modules/ConfigModule';
 import UserManagement from '@/modules/UserManagement';
+import AdminDashboard from '@/modules/AdminDashboard';
 import {
   useClientes, useOrdensServico, useOrcamentos,
   useRecibos, useCustos, useEmpresaConfig, useServicosCatalogo
