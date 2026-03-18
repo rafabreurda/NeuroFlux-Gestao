@@ -5,10 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Settings, Upload, Trash2, PenTool, User, Users } from 'lucide-react';
+import { Settings, Upload, Trash2, PenTool, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import UserManagement from './UserManagement';
 import { formatCpfCnpj, formatPhone } from '@/lib/masks';
 
 interface Props {
@@ -16,7 +15,6 @@ interface Props {
   updateConfig: (updates: Partial<EmpresaConfig>) => void;
   profile: Profile | null;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
-  isAdmin?: boolean;
 }
 
 const ESTADOS_BR = [
@@ -99,7 +97,7 @@ function SignaturePad({ value, onChange }: { value: string | null; onChange: (v:
   );
 }
 
-export default function ConfigModule({ config, updateConfig, profile, updateProfile, isAdmin }: Props) {
+export default function ConfigModule({ config, updateConfig, profile, updateProfile }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [profileForm, setProfileForm] = useState({
     nome: '', cpf: '', cnpj: '', telefone: '', data_nascimento: '',
@@ -136,7 +134,7 @@ export default function ConfigModule({ config, updateConfig, profile, updateProf
           <TabsTrigger value="perfil" className="flex-1"><User className="mr-1 h-4 w-4" /> Perfil</TabsTrigger>
           <TabsTrigger value="empresa" className="flex-1"><Settings className="mr-1 h-4 w-4" /> Empresa</TabsTrigger>
           <TabsTrigger value="assinatura" className="flex-1"><PenTool className="mr-1 h-4 w-4" /> Assinatura</TabsTrigger>
-          {isAdmin && <TabsTrigger value="usuarios" className="flex-1"><Users className="mr-1 h-4 w-4" /> Usuários</TabsTrigger>}
+          
         </TabsList>
 
         <TabsContent value="perfil" className="space-y-4 mt-4">
@@ -225,11 +223,6 @@ export default function ConfigModule({ config, updateConfig, profile, updateProf
           </Card>
         </TabsContent>
 
-        {isAdmin && (
-          <TabsContent value="usuarios" className="mt-4">
-            <UserManagement />
-          </TabsContent>
-        )}
       </Tabs>
     </div>
   );

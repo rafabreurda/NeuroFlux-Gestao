@@ -1,4 +1,4 @@
-// Admin users management v4 - case-insensitive, plans dashboard
+// Admin users management v5 - block/unblock, last_seen
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -93,11 +93,28 @@ serve(async (req) => {
           role: roles?.find((r: any) => r.user_id === p.user_id)?.role || "user",
           planos: (planos || []).filter((pl: any) => pl.user_id === p.user_id),
           contratos: (contratos || []).filter((c: any) => c.user_id === p.user_id),
+          blocked: p.blocked || false,
+          last_seen: p.last_seen || null,
         };
       });
       return new Response(JSON.stringify({ users: enriched }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ============ BLOCK / UNBLOCK USER ============
+    if (action === "block-user" || action === "unblock-user") {
+      const { userId } = params;
+      const blocked = action === "block-user";
+      const { error } = await supabaseAdmin.from("profiles").update({ blocked }).eq("user_id", userId);
+      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      // If blocking, also sign out user sessions
+      if (blocked) {
+        await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration: "876000h" });
+      } else {
+        await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration: "none" });
+      }
+      return new Response(JSON.stringify({ success: true, blocked }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ============ RESET PASSWORD ============

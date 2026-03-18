@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   UserPlus, Users, Trash2, Key, Eye, EyeOff, ChevronDown, ChevronUp,
   CreditCard, FileText, Upload, Download, AlertTriangle, Plus, CalendarIcon,
-  BarChart3, DollarSign, TrendingUp,
+  BarChart3, DollarSign, TrendingUp, Ban, CheckCircle, Clock,
 } from 'lucide-react';
 import { formatCpfCnpj, formatPhone } from '@/lib/masks';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -48,6 +48,8 @@ interface ManagedUser {
   empresa: string;
   role: string;
   senha_texto: string | null;
+  blocked: boolean;
+  last_seen: string | null;
   planos: Plano[];
   contratos: Contrato[];
 }
@@ -64,8 +66,8 @@ function diasParaVencimento(dataVencimento: string): number {
   return Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export default function UserManagement() {
-  const [mainTab, setMainTab] = useState<'dashboard' | 'usuarios'>('dashboard');
+export default function UserManagement({ initialTab = 'dashboard' }: { initialTab?: 'dashboard' | 'usuarios' } = {}) {
+  const [mainTab, setMainTab] = useState<'dashboard' | 'usuarios'>(initialTab);
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -132,6 +134,32 @@ export default function UserManagement() {
     const res = await supabase.functions.invoke('admin-users', { body: { action: 'delete-user', userId } });
     if (res.data?.success) { toast.success('Usuário excluído'); fetchUsers(); }
     else { toast.error(res.data?.error || 'Erro ao excluir'); }
+  };
+
+  const handleToggleBlock = async (userId: string, currentlyBlocked: boolean) => {
+    const action = currentlyBlocked ? 'unblock-user' : 'block-user';
+    const res = await supabase.functions.invoke('admin-users', { body: { action, userId } });
+    if (res.data?.success) {
+      toast.success(currentlyBlocked ? 'Usuário desbloqueado!' : 'Usuário bloqueado!');
+      fetchUsers();
+    } else {
+      toast.error(res.data?.error || 'Erro');
+    }
+  };
+
+  const formatLastSeen = (lastSeen: string | null) => {
+    if (!lastSeen) return 'Nunca';
+    const date = new Date(lastSeen);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Agora';
+    if (diffMin < 60) return `${diffMin}min atrás`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `${diffH}h atrás`;
+    const diffD = Math.floor(diffH / 24);
+    if (diffD < 7) return `${diffD}d atrás`;
+    return date.toLocaleDateString('pt-BR');
   };
 
   const handleAddPlano = async (userId: string) => {
@@ -451,17 +479,26 @@ export default function UserManagement() {
             const planosVencendo = (u.planos || []).filter(p => diasParaVencimento(p.data_vencimento) <= 7 && diasParaVencimento(p.data_vencimento) >= 0);
 
             return (
-              <Card key={u.user_id}>
+              <Card key={u.user_id} className={u.blocked ? 'opacity-60 border-destructive/30' : ''}>
                 <CardContent className="p-3">
                   <button
                     className="flex w-full items-center justify-between text-left"
                     onClick={() => setExpandedUser(isExpanded ? null : u.user_id)}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div>
-                        <p className="font-medium">{u.nome || u.username || 'Sem nome'}</p>
+                        <p className="font-medium flex items-center gap-1.5">
+                          {u.nome || u.username || 'Sem nome'}
+                          {u.blocked && <Ban className="h-4 w-4 text-destructive" />}
+                        </p>
                         <p className="text-xs text-muted-foreground">Login: <span className="font-mono">{u.username}</span></p>
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> Último acesso: {formatLastSeen(u.last_seen)}
+                        </p>
                       </div>
+                      {u.blocked && (
+                        <Badge variant="destructive" className="text-[10px]">Bloqueado</Badge>
+                      )}
                       {planosVencendo.length > 0 && (
                         <Badge variant="destructive" className="text-[10px]">
                           <AlertTriangle className="h-3 w-3 mr-0.5" /> Vencendo
@@ -519,9 +556,14 @@ export default function UserManagement() {
                             </Button>
                           </div>
 
-                          <Button size="sm" variant="destructive" onClick={() => handleDelete(u.user_id, u.nome || u.username)}>
-                            <Trash2 className="h-4 w-4 mr-1" /> Excluir Usuário
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant={u.blocked ? 'outline' : 'secondary'} onClick={() => handleToggleBlock(u.user_id, u.blocked)}>
+                              {u.blocked ? <><CheckCircle className="h-4 w-4 mr-1" /> Desbloquear</> : <><Ban className="h-4 w-4 mr-1" /> Bloquear</>}
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDelete(u.user_id, u.nome || u.username)}>
+                              <Trash2 className="h-4 w-4 mr-1" /> Excluir
+                            </Button>
+                          </div>
                         </TabsContent>
 
                         {/* ===== PLANOS ===== */}

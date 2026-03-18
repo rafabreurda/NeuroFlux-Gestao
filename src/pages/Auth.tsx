@@ -15,13 +15,32 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Convert username to internal email
       const email = `${form.username.toLowerCase().replace(/\s+/g, '.')}@neuroflux.app`;
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password: form.password,
       });
       if (error) throw new Error('Usuário ou senha incorretos');
+
+      // Check if user is blocked
+      const userId = data.user?.id;
+      if (userId) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('blocked')
+          .eq('user_id', userId)
+          .single();
+
+        if (profile?.blocked) {
+          await supabase.auth.signOut();
+          toast.error('Sua conta está bloqueada. Entre em contato com o administrador.');
+          return;
+        }
+
+        // Update last_seen
+        await supabase.from('profiles').update({ last_seen: new Date().toISOString() } as any).eq('user_id', userId);
+      }
+
       toast.success('Login realizado!');
     } catch (err: any) {
       toast.error(err.message || 'Erro na autenticação');
