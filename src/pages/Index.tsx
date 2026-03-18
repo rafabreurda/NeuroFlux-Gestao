@@ -9,7 +9,7 @@ import CustosModule from '@/modules/CustosModule';
 import ConfigModule from '@/modules/ConfigModule';
 import {
   useClientes, useOrdensServico, useOrcamentos,
-  useRecibos, useCustos, useEmpresaConfig
+  useRecibos, useCustos, useEmpresaConfig, useServicosCatalogo
 } from '@/store/useStore';
 import { useProfile } from '@/hooks/useProfile';
 import { useUserRole } from '@/hooks/useUserRole';
