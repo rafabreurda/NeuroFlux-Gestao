@@ -65,6 +65,7 @@ function diasParaVencimento(dataVencimento: string): number {
 }
 
 export default function UserManagement() {
+  const [mainTab, setMainTab] = useState<'dashboard' | 'usuarios'>('dashboard');
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
