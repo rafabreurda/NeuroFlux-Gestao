@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Receipt, Download, TrendingUp, TrendingDown, DollarSign, BarChart3, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { Plus, Receipt, Download, TrendingUp, TrendingDown, BarChart3, ArrowUpRight, ArrowDownRight, ChevronDown, ChevronUp, X, FileText, Handshake } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+
+type DrilldownKey = 'entradas' | 'saidas' | 'orcamentos' | 'lucro' | null;
 
 interface Props {
   recibos: Recibo[];
@@ -57,6 +59,9 @@ export default function FaturamentoModule({ recibos, addRecibo, empresaLogo, emp
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState('');
   const [formaPagamento, setFormaPagamento] = useState('Dinheiro');
+  const [drilldown, setDrilldown] = useState<DrilldownKey>(null);
+
+  const toggleDrilldown = (key: DrilldownKey) => setDrilldown(prev => prev === key ? null : key);
 
   const financeiro = useMemo(() => {
     const totalEntradas = recibos.reduce((s, r) => s + r.valor, 0);
@@ -134,38 +139,215 @@ export default function FaturamentoModule({ recibos, addRecibo, empresaLogo, emp
 
   return (
     <div className="space-y-6">
+      {/* KPI Cards — clicáveis */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><ArrowUpRight className="h-3.5 w-3.5 text-green-500" /> Entradas</div>
+        {/* Entradas */}
+        <button
+          onClick={() => toggleDrilldown('entradas')}
+          className={`text-left rounded-xl border-l-4 border-l-green-500 bg-card shadow-sm transition-all hover:shadow-md active:scale-95 ${drilldown === 'entradas' ? 'ring-2 ring-green-400' : ''}`}
+        >
+          <div className="p-4">
+            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+              <span className="flex items-center gap-1"><ArrowUpRight className="h-3.5 w-3.5 text-green-500" /> Entradas</span>
+              {drilldown === 'entradas' ? <ChevronUp className="h-3.5 w-3.5 text-green-500" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+            </div>
             <p className="mt-1 text-xl font-bold text-green-600">R$ {financeiro.totalEntradas.toFixed(2)}</p>
             <p className="text-[10px] text-muted-foreground">{recibos.length} recibos emitidos</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-red-500">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><ArrowDownRight className="h-3.5 w-3.5 text-red-500" /> Saídas</div>
+          </div>
+        </button>
+
+        {/* Saídas */}
+        <button
+          onClick={() => toggleDrilldown('saidas')}
+          className={`text-left rounded-xl border-l-4 border-l-red-500 bg-card shadow-sm transition-all hover:shadow-md active:scale-95 ${drilldown === 'saidas' ? 'ring-2 ring-red-400' : ''}`}
+        >
+          <div className="p-4">
+            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+              <span className="flex items-center gap-1"><ArrowDownRight className="h-3.5 w-3.5 text-red-500" /> Saídas</span>
+              {drilldown === 'saidas' ? <ChevronUp className="h-3.5 w-3.5 text-red-500" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+            </div>
             <p className="mt-1 text-xl font-bold text-red-600">R$ {financeiro.totalCustos.toFixed(2)}</p>
             <p className="text-[10px] text-muted-foreground">{custos.length} custos registrados</p>
-          </CardContent>
-        </Card>
-        <Card className={`border-l-4 ${lucroPositivo ? 'border-l-blue-500' : 'border-l-orange-500'}`}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              {lucroPositivo ? <TrendingUp className="h-3.5 w-3.5 text-blue-500" /> : <TrendingDown className="h-3.5 w-3.5 text-orange-500" />} Lucro Líquido
+          </div>
+        </button>
+
+        {/* Lucro */}
+        <button
+          onClick={() => toggleDrilldown('lucro')}
+          className={`text-left rounded-xl border-l-4 ${lucroPositivo ? 'border-l-blue-500' : 'border-l-orange-500'} bg-card shadow-sm transition-all hover:shadow-md active:scale-95 ${drilldown === 'lucro' ? 'ring-2 ring-blue-400' : ''}`}
+        >
+          <div className="p-4">
+            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+              <span className="flex items-center gap-1">
+                {lucroPositivo ? <TrendingUp className="h-3.5 w-3.5 text-blue-500" /> : <TrendingDown className="h-3.5 w-3.5 text-orange-500" />} Lucro
+              </span>
+              {drilldown === 'lucro' ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
             </div>
             <p className={`mt-1 text-xl font-bold ${lucroPositivo ? 'text-blue-600' : 'text-orange-600'}`}>R$ {financeiro.lucro.toFixed(2)}</p>
             <p className="text-[10px] text-muted-foreground">Entradas − Custos</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-amber-500">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground"><BarChart3 className="h-3.5 w-3.5 text-amber-500" /> Orçamentos</div>
+          </div>
+        </button>
+
+        {/* Orçamentos */}
+        <button
+          onClick={() => toggleDrilldown('orcamentos')}
+          className={`text-left rounded-xl border-l-4 border-l-amber-500 bg-card shadow-sm transition-all hover:shadow-md active:scale-95 ${drilldown === 'orcamentos' ? 'ring-2 ring-amber-400' : ''}`}
+        >
+          <div className="p-4">
+            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+              <span className="flex items-center gap-1"><BarChart3 className="h-3.5 w-3.5 text-amber-500" /> Orçamentos</span>
+              {drilldown === 'orcamentos' ? <ChevronUp className="h-3.5 w-3.5 text-amber-500" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+            </div>
             <p className="mt-1 text-xl font-bold text-amber-600">R$ {financeiro.totalOrcamentos.toFixed(2)}</p>
             <p className="text-[10px] text-muted-foreground">{orcamentos.length} orçamentos</p>
+          </div>
+        </button>
+      </div>
+
+      {/* Drilldown panels */}
+      {drilldown === 'entradas' && (
+        <Card className="border-green-200 dark:border-green-900">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2 text-green-700 dark:text-green-400">
+              <ArrowUpRight className="h-4 w-4" /> Entradas — Recibos Emitidos ({recibos.length})
+            </CardTitle>
+            <button onClick={() => setDrilldown(null)}><X className="h-4 w-4 text-muted-foreground" /></button>
+          </CardHeader>
+          <CardContent className="p-0">
+            {recibos.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Nenhum recibo emitido.</p>
+            ) : (
+              <div className="divide-y">
+                {recibos.map(rec => (
+                  <div key={rec.id} className="flex items-center justify-between px-4 py-3">
+                    <div>
+                      <p className="text-sm font-medium">#{String(rec.numero).padStart(4, '0')} — {rec.clienteNome}</p>
+                      <p className="text-xs text-muted-foreground">{rec.formaPagamento} · {new Date(rec.criadoEm).toLocaleDateString('pt-BR')}</p>
+                      {rec.descricao && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{rec.descricao}</p>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-green-600">R$ {rec.valor.toFixed(2)}</span>
+                      <button onClick={() => gerarReciboPDF(rec)} className="rounded p-1 hover:bg-muted" title="PDF">
+                        <Download className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between px-4 py-3 bg-green-50 dark:bg-green-950/30 font-semibold text-green-700 dark:text-green-400 text-sm">
+                  <span>Total</span>
+                  <span>R$ {financeiro.totalEntradas.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
-      </div>
+      )}
+
+      {drilldown === 'saidas' && (
+        <Card className="border-red-200 dark:border-red-900">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2 text-red-700 dark:text-red-400">
+              <ArrowDownRight className="h-4 w-4" /> Saídas — Custos Fixos ({custos.length})
+            </CardTitle>
+            <button onClick={() => setDrilldown(null)}><X className="h-4 w-4 text-muted-foreground" /></button>
+          </CardHeader>
+          <CardContent className="p-0">
+            {custos.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Nenhum custo registrado.</p>
+            ) : (
+              <div className="divide-y">
+                {custos.map(c => (
+                  <div key={c.id} className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Handshake className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">{c.nome}</span>
+                    </div>
+                    <span className="text-sm font-bold text-red-600">R$ {c.valor.toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between px-4 py-3 bg-red-50 dark:bg-red-950/30 font-semibold text-red-700 dark:text-red-400 text-sm">
+                  <span>Total</span>
+                  <span>R$ {financeiro.totalCustos.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {drilldown === 'lucro' && (
+        <Card className={`${lucroPositivo ? 'border-blue-200 dark:border-blue-900' : 'border-orange-200 dark:border-orange-900'}`}>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className={`text-sm flex items-center gap-2 ${lucroPositivo ? 'text-blue-700 dark:text-blue-400' : 'text-orange-700 dark:text-orange-400'}`}>
+              {lucroPositivo ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />} Composição do Lucro
+            </CardTitle>
+            <button onClick={() => setDrilldown(null)}><X className="h-4 w-4 text-muted-foreground" /></button>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total de entradas (recibos)</span>
+                <span className="font-semibold text-green-600">+ R$ {financeiro.totalEntradas.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total de saídas (custos)</span>
+                <span className="font-semibold text-red-600">− R$ {financeiro.totalCustos.toFixed(2)}</span>
+              </div>
+              <div className="border-t pt-3 flex justify-between text-base font-bold">
+                <span>Lucro Líquido</span>
+                <span className={lucroPositivo ? 'text-blue-600' : 'text-orange-600'}>R$ {financeiro.lucro.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Margem de lucro</span>
+                <span>{financeiro.totalEntradas > 0 ? ((financeiro.lucro / financeiro.totalEntradas) * 100).toFixed(1) : '0'}%</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {drilldown === 'orcamentos' && (
+        <Card className="border-amber-200 dark:border-amber-900">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <FileText className="h-4 w-4" /> Orçamentos ({orcamentos.length})
+            </CardTitle>
+            <button onClick={() => setDrilldown(null)}><X className="h-4 w-4 text-muted-foreground" /></button>
+          </CardHeader>
+          <CardContent className="p-0">
+            {orcamentos.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">Nenhum orçamento criado.</p>
+            ) : (
+              <div className="divide-y">
+                {orcamentos.map(o => {
+                  const totalItens = o.itens.reduce((s, i) => s + i.quantidade * i.valorUnitario, 0);
+                  const totalMat = o.materiais.reduce((s, m) => s + m.valor, 0);
+                  const total = totalItens + totalMat + o.maoDeObra - (o.desconto || 0);
+                  const statusLabel = o.status === 'aprovado' ? 'Aprovado' : o.status === 'rejeitado' ? 'Rejeitado' : 'Pendente';
+                  const statusColor = o.status === 'aprovado' ? 'bg-green-100 text-green-700' : o.status === 'rejeitado' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700';
+                  return (
+                    <div key={o.id} className="flex items-center justify-between px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium">{o.clienteNome}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${statusColor}`}>{statusLabel}</span>
+                          {o.validade && <span className="text-xs text-muted-foreground">Válido até {new Date(o.validade).toLocaleDateString('pt-BR')}</span>}
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold text-amber-600">R$ {total.toFixed(2)}</span>
+                    </div>
+                  );
+                })}
+                <div className="flex items-center justify-between px-4 py-3 bg-amber-50 dark:bg-amber-950/30 font-semibold text-amber-700 dark:text-amber-400 text-sm">
+                  <span>Total</span>
+                  <span>R$ {financeiro.totalOrcamentos.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
 
       <Tabs defaultValue="dashboard" className="w-full">
         <TabsList className="w-full grid grid-cols-3">
