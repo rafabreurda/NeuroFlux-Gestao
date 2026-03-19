@@ -88,13 +88,18 @@ export default function UserManagement() {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    const res = await supabase.functions.invoke('admin-users', {
-      body: { action: 'list-users' },
-    });
-    if (res.data?.users) {
-      setUsers(res.data.users.filter((u: ManagedUser) => u.role !== 'admin'));
+    try {
+      const res = await supabase.functions.invoke('admin-users', {
+        body: { action: 'list-users' },
+      });
+      if (res.data?.users) {
+        setUsers(res.data.users.filter((u: ManagedUser) => u.role !== 'admin'));
+      }
+    } catch (err) {
+      console.error('UserManagement fetch error:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);

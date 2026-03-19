@@ -39,13 +39,18 @@ export default function AdminDashboard() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const res = await supabase.functions.invoke('admin-users', {
-      body: { action: 'list-users' },
-    });
-    if (res.data?.users) {
-      setUsers(res.data.users.filter((u: UserData) => u.user_id));
+    try {
+      const res = await supabase.functions.invoke('admin-users', {
+        body: { action: 'list-users' },
+      });
+      if (res.data?.users) {
+        setUsers(res.data.users.filter((u: UserData) => u.user_id));
+      }
+    } catch (err) {
+      console.error('AdminDashboard fetch error:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);

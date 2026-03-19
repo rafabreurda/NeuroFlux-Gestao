@@ -83,6 +83,12 @@ const Index = ({ user, signOut }: Props) => {
 
   // Admin routes: config = user management, faturamento = financial dashboard
   if (isAdmin) {
+    // If admin ended up in a user-only module (race condition during role load), redirect to default
+    const adminModuleKeys = ['config', 'faturamento'];
+    if (!adminModuleKeys.includes(activeModule)) {
+      setActiveModule('config');
+      return null;
+    }
     return (
       <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome} isAdmin>
         {activeModule === 'config' && <UserManagement />}

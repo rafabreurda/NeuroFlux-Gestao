@@ -25,7 +25,7 @@ export function useProfile(userId: string | undefined) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) { setLoading(false); return; }
     setLoading(true);
     const { data, error } = await supabase
       .from('profiles')
