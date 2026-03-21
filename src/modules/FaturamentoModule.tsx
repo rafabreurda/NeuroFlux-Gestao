@@ -69,7 +69,7 @@ export default function FaturamentoModule({ recibos, addRecibo, empresaLogo, emp
     const totalOrcamentos = orcamentos.reduce((s, o) => {
       const itens = o.itens.reduce((si, i) => si + i.quantidade * i.valorUnitario, 0);
       const materiais = o.materiais.reduce((sm, m) => sm + m.valor, 0);
-      return s + itens + materiais + o.maoDeObra;
+      return s + itens + materiais + o.maoDeObra - (o.desconto || 0);
     }, 0);
     const lucro = totalEntradas - totalCustos;
     const porOS = ordens.map(os => {

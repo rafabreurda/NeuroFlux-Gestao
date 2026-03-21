@@ -85,9 +85,9 @@ export function useOrdensServico() {
         descricao: d.descricao, data: d.data, codigo: d.codigo,
         status: d.status as OrdemServico['status'], fotoAntes: d.foto_antes,
         fotoDepois: d.foto_depois, valor: Number(d.valor), criadoEm: d.created_at,
-        materiais: Array.isArray((d as any).materiais_json) ? (d as any).materiais_json : [],
-        duracaoHoras: Number((d as any).duracao_horas || 0),
-        dataAgendamento: (d as any).data_agendamento || null,
+        materiais: Array.isArray(d.materiais_json) ? (d.materiais_json as OSMaterial[]) : [],
+        duracaoHoras: Number(d.duracao_horas ?? 0),
+        dataAgendamento: d.data_agendamento ?? null,
       })));
     }
   }, []);
@@ -100,20 +100,20 @@ export function useOrdensServico() {
     const { data, error } = await supabase.from('ordens_servico').insert({
       user_id: userId, cliente_id: o.clienteId, cliente_nome: o.clienteNome,
       descricao: o.descricao, data: o.data, codigo: o.codigo, valor: o.valor,
-      materiais_json: o.materiais as any, duracao_horas: o.duracaoHoras,
+      materiais_json: o.materiais as unknown as import('@/integrations/supabase/types').Json,
+      duracao_horas: o.duracaoHoras,
       data_agendamento: o.dataAgendamento,
-    } as any).select().single();
+    }).select().single();
     if (error) { toast.error('Erro ao criar OS'); console.error(error); return; }
     if (data) {
-      const d = data as any;
       setOrdens(prev => [{
-        id: d.id, clienteId: d.cliente_id, clienteNome: d.cliente_nome,
-        descricao: d.descricao, data: d.data, codigo: d.codigo,
-        status: d.status as OrdemServico['status'], fotoAntes: d.foto_antes,
-        fotoDepois: d.foto_depois, valor: Number(d.valor), criadoEm: d.created_at,
-        materiais: Array.isArray(d.materiais_json) ? d.materiais_json : [],
-        duracaoHoras: Number(d.duracao_horas || 0),
-        dataAgendamento: d.data_agendamento || null,
+        id: data.id, clienteId: data.cliente_id, clienteNome: data.cliente_nome,
+        descricao: data.descricao, data: data.data, codigo: data.codigo,
+        status: data.status as OrdemServico['status'], fotoAntes: data.foto_antes,
+        fotoDepois: data.foto_depois, valor: Number(data.valor), criadoEm: data.created_at,
+        materiais: Array.isArray(data.materiais_json) ? (data.materiais_json as OSMaterial[]) : [],
+        duracaoHoras: Number(data.duracao_horas ?? 0),
+        dataAgendamento: data.data_agendamento ?? null,
       }, ...prev]);
     }
   }, []);
@@ -151,15 +151,19 @@ export function useOrcamentos() {
     if (data) {
       setOrcamentos(data.map(d => ({
         id: d.id, clienteId: d.cliente_id, clienteNome: d.cliente_nome,
-        itens: (d.orcamento_itens || []).map((i: any) => ({
+        itens: (d.orcamento_itens || []).map((i: { descricao: string; quantidade: number; valor_unitario: number; unidade: string; custo_unitario: number; margem_lucro: number }) => ({
           descricao: i.descricao, quantidade: i.quantidade, valorUnitario: Number(i.valor_unitario),
           unidade: i.unidade || 'un.', custoUnitario: Number(i.custo_unitario || 0), margemLucro: Number(i.margem_lucro || 0),
         })),
-        materiais: (d.orcamento_materiais || []).map((m: any) => ({
+        materiais: (d.orcamento_materiais || []).map((m: { nome: string; valor: number; unidade: string; quantidade: number; custo_unitario: number; margem_lucro: number }) => ({
           nome: m.nome, valor: Number(m.valor),
           unidade: m.unidade || 'un.', quantidade: m.quantidade || 1, custoUnitario: Number(m.custo_unitario || 0), margemLucro: Number(m.margem_lucro || 0),
         })),
-        maoDeObra: Number(d.mao_de_obra), horas: Number((d as any).horas || 0), dias: Number((d as any).dias || 0), km: Number((d as any).km || 0), desconto: Number((d as any).desconto || 0),
+        maoDeObra: Number(d.mao_de_obra),
+        horas: Number(d.horas ?? 0),
+        dias: Number(d.dias ?? 0),
+        km: Number(d.km ?? 0),
+        desconto: Number(d.desconto ?? 0),
         validade: d.validade, observacoes: d.observacoes,
         status: d.status as Orcamento['status'], assinatura: d.assinatura, criadoEm: d.created_at,
       })));
@@ -291,7 +295,7 @@ export function useEmpresaConfig() {
       setConfig({
         nome: data.nome, cnpj: data.cnpj, endereco: data.endereco,
         telefone: data.telefone, email: data.email, logo: data.logo, assinatura: data.assinatura,
-        valorHora: Number(data.valor_hora || 0), valorDia: Number(data.valor_dia || 0), valorKm: Number(data.valor_km || 0),
+        valorHora: Number(data.valor_hora ?? 0), valorDia: Number(data.valor_dia ?? 0), valorKm: Number(data.valor_km ?? 0),
       });
     }
   }, []);
@@ -301,16 +305,20 @@ export function useEmpresaConfig() {
   const updateConfig = useCallback(async (updates: Partial<EmpresaConfig>) => {
     const userId = await getUserId();
     if (!userId) return;
-    const newConfig = { ...config, ...updates };
-    const { error } = await supabase.from('empresa_config').upsert({
-      user_id: userId, nome: newConfig.nome, cnpj: newConfig.cnpj,
-      endereco: newConfig.endereco, telefone: newConfig.telefone,
-      email: newConfig.email, logo: newConfig.logo, assinatura: newConfig.assinatura,
-      valor_hora: newConfig.valorHora, valor_dia: newConfig.valorDia, valor_km: newConfig.valorKm,
-    }, { onConflict: 'user_id' });
-    if (error) { toast.error('Erro ao salvar configuração'); console.error(error); return; }
-    setConfig(newConfig);
-  }, [config]);
+    setConfig(prev => {
+      const newConfig = { ...prev, ...updates };
+      // Fire-and-forget the async save
+      supabase.from('empresa_config').upsert({
+        user_id: userId, nome: newConfig.nome, cnpj: newConfig.cnpj,
+        endereco: newConfig.endereco, telefone: newConfig.telefone,
+        email: newConfig.email, logo: newConfig.logo, assinatura: newConfig.assinatura,
+        valor_hora: newConfig.valorHora, valor_dia: newConfig.valorDia, valor_km: newConfig.valorKm,
+      }, { onConflict: 'user_id' }).then(({ error }) => {
+        if (error) { toast.error('Erro ao salvar configuração'); console.error(error); }
+      });
+      return newConfig;
+    });
+  }, []);
 
   return { config, updateConfig };
 }
@@ -320,9 +328,9 @@ export function useServicosCatalogo() {
   const [servicos, setServicos] = useState<ServicoCatalogo[]>([]);
 
   const fetch = useCallback(async () => {
-    const { data } = await supabase.from('servicos_catalogo' as any).select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from('servicos_catalogo').select('*').order('created_at', { ascending: false });
     if (data) {
-      setServicos((data as any[]).map(d => ({
+      setServicos(data.map(d => ({
         id: d.id, nome: d.nome, descricao: d.descricao || '', valor: Number(d.valor), criadoEm: d.created_at,
       })));
     }
@@ -333,32 +341,34 @@ export function useServicosCatalogo() {
   const addServico = useCallback(async (s: Omit<ServicoCatalogo, 'id' | 'criadoEm'>) => {
     const userId = await getUserId();
     if (!userId) return;
-    const { data, error } = await supabase.from('servicos_catalogo' as any).insert({
+    const { data, error } = await supabase.from('servicos_catalogo').insert({
       user_id: userId, nome: s.nome, descricao: s.descricao, valor: s.valor,
-    } as any).select().single();
+    }).select().single();
     if (error) { toast.error('Erro ao salvar serviço'); return; }
     if (data) {
-      const d = data as any;
-      setServicos(prev => [{ id: d.id, nome: d.nome, descricao: d.descricao || '', valor: Number(d.valor), criadoEm: d.created_at }, ...prev]);
+      setServicos(prev => [{ id: data.id, nome: data.nome, descricao: data.descricao || '', valor: Number(data.valor), criadoEm: data.created_at }, ...prev]);
     }
     toast.success('Serviço cadastrado!');
   }, []);
 
   const removeServico = useCallback(async (id: string) => {
-    const { error } = await supabase.from('servicos_catalogo' as any).delete().eq('id', id);
+    const { error } = await supabase.from('servicos_catalogo').delete().eq('id', id);
     if (error) { toast.error('Erro ao remover serviço'); return; }
     setServicos(prev => prev.filter(s => s.id !== id));
   }, []);
 
   const updateServico = useCallback(async (id: string, updates: Partial<ServicoCatalogo>) => {
-    const payload: any = {};
+    const payload: { nome?: string; descricao?: string; valor?: number } = {};
     if (updates.nome !== undefined) payload.nome = updates.nome;
     if (updates.descricao !== undefined) payload.descricao = updates.descricao;
     if (updates.valor !== undefined) payload.valor = updates.valor;
-    const { error } = await supabase.from('servicos_catalogo' as any).update(payload).eq('id', id);
+    const { error } = await supabase.from('servicos_catalogo').update(payload).eq('id', id);
     if (error) { toast.error('Erro ao atualizar serviço'); return; }
     setServicos(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
   }, []);
 
   return { servicos, addServico, removeServico, updateServico };
 }
+
+// Type alias for OS materials (used internally)
+type OSMaterial = { nome: string; quantidade: number; unidade: string; valor: number };

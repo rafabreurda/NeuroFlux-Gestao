@@ -139,7 +139,10 @@ export default function OrcamentosModule({ orcamentos, clientes, addOrcamento, u
     const orcDesconto = orc.desconto || 0;
     const orcTotal = orcTotalItens + orcTotalMat + (orc.maoDeObra || 0) - orcDesconto;
     const w = window.open('', '_blank');
-    if (!w) return;
+    if (!w) {
+      toast.error('Popup bloqueado! Permita pop-ups para este site e tente novamente.');
+      return;
+    }
     w.document.write(`
       <html><head><title>Orçamento</title><style>
         body{font-family:system-ui;margin:40px;color:#222;font-size:14px}
