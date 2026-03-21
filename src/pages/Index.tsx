@@ -1,14 +1,23 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import type { User } from '@supabase/supabase-js';
 import AppLayout from '@/components/AppLayout';
-import ServicosModule from '@/modules/ServicosModule';
-import ClientesModule from '@/modules/ClientesModule';
-import OrcamentosModule from '@/modules/OrcamentosModule';
-import FaturamentoModule from '@/modules/FaturamentoModule';
-import CustosModule from '@/modules/CustosModule';
-import ConfigModule from '@/modules/ConfigModule';
-import UserManagement from '@/modules/UserManagement';
-import AdminDashboard from '@/modules/AdminDashboard';
+
+const ServicosModule = lazy(() => import('@/modules/ServicosModule'));
+const ClientesModule = lazy(() => import('@/modules/ClientesModule'));
+const OrcamentosModule = lazy(() => import('@/modules/OrcamentosModule'));
+const FaturamentoModule = lazy(() => import('@/modules/FaturamentoModule'));
+const CustosModule = lazy(() => import('@/modules/CustosModule'));
+const ConfigModule = lazy(() => import('@/modules/ConfigModule'));
+const UserManagement = lazy(() => import('@/modules/UserManagement'));
+const AdminDashboard = lazy(() => import('@/modules/AdminDashboard'));
+
+function ModuleLoader() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    </div>
+  );
+}
 import {
   useClientes, useOrdensServico, useOrcamentos,
   useRecibos, useCustos, useEmpresaConfig, useServicosCatalogo
@@ -91,32 +100,36 @@ const Index = ({ user, signOut }: Props) => {
     }
     return (
       <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome} isAdmin>
-        {activeModule === 'config' && <UserManagement />}
-        {activeModule === 'faturamento' && <AdminDashboard />}
+        <Suspense fallback={<ModuleLoader />}>
+          {activeModule === 'config' && <UserManagement />}
+          {activeModule === 'faturamento' && <AdminDashboard />}
+        </Suspense>
       </AppLayout>
     );
   }
 
   return (
     <AppLayout activeModule={activeModule} onModuleChange={setActiveModule} signOut={signOut} userName={profile?.nome}>
-      {activeModule === 'servicos' && (
-        <ServicosModule ordens={ordens} clientes={clientes} orcamentos={orcamentos} catalogoServicos={catalogoServicos} addServicoCatalogo={addServicoCatalogo} removeServicoCatalogo={removeServicoCatalogo} updateServicoCatalogo={updateServicoCatalogo} addOrdem={addOrdem} updateOrdem={updateOrdem} removeOrdem={removeOrdem} />
-      )}
-      {activeModule === 'clientes' && (
-        <ClientesModule clientes={clientes} addCliente={addCliente} updateCliente={updateCliente} removeCliente={removeCliente} ordens={ordens} orcamentos={orcamentos} addOrdem={addOrdem} addOrcamento={addOrcamento} catalogoServicos={catalogoServicos} />
-      )}
-      {activeModule === 'orcamentos' && (
-        <OrcamentosModule orcamentos={orcamentos} clientes={clientes} addOrcamento={addOrcamento} updateOrcamento={updateOrcamento} empresaLogo={config.logo} empresaNome={config.nome} empresaAssinatura={config.assinatura} empresaEndereco={config.endereco} valorHora={config.valorHora} valorDia={config.valorDia} valorKm={config.valorKm} catalogoServicos={catalogoServicos} />
-      )}
-      {activeModule === 'faturamento' && (
-        <FaturamentoModule recibos={recibos} addRecibo={addRecibo} empresaLogo={config.logo} empresaNome={config.nome} ordens={ordens} orcamentos={orcamentos} custos={custos} clientes={clientes} />
-      )}
-      {activeModule === 'custos' && (
-        <CustosModule custos={custos} addCusto={addCusto} removeCusto={removeCusto} />
-      )}
-      {activeModule === 'config' && (
-        <ConfigModule config={config} updateConfig={updateConfig} profile={profile} updateProfile={updateProfile} />
-      )}
+      <Suspense fallback={<ModuleLoader />}>
+        {activeModule === 'servicos' && (
+          <ServicosModule ordens={ordens} clientes={clientes} orcamentos={orcamentos} catalogoServicos={catalogoServicos} addServicoCatalogo={addServicoCatalogo} removeServicoCatalogo={removeServicoCatalogo} updateServicoCatalogo={updateServicoCatalogo} addOrdem={addOrdem} updateOrdem={updateOrdem} removeOrdem={removeOrdem} />
+        )}
+        {activeModule === 'clientes' && (
+          <ClientesModule clientes={clientes} addCliente={addCliente} updateCliente={updateCliente} removeCliente={removeCliente} ordens={ordens} orcamentos={orcamentos} addOrdem={addOrdem} addOrcamento={addOrcamento} catalogoServicos={catalogoServicos} />
+        )}
+        {activeModule === 'orcamentos' && (
+          <OrcamentosModule orcamentos={orcamentos} clientes={clientes} addOrcamento={addOrcamento} updateOrcamento={updateOrcamento} empresaLogo={config.logo} empresaNome={config.nome} empresaAssinatura={config.assinatura} empresaEndereco={config.endereco} valorHora={config.valorHora} valorDia={config.valorDia} valorKm={config.valorKm} catalogoServicos={catalogoServicos} />
+        )}
+        {activeModule === 'faturamento' && (
+          <FaturamentoModule recibos={recibos} addRecibo={addRecibo} empresaLogo={config.logo} empresaNome={config.nome} ordens={ordens} orcamentos={orcamentos} custos={custos} clientes={clientes} />
+        )}
+        {activeModule === 'custos' && (
+          <CustosModule custos={custos} addCusto={addCusto} removeCusto={removeCusto} />
+        )}
+        {activeModule === 'config' && (
+          <ConfigModule config={config} updateConfig={updateConfig} profile={profile} updateProfile={updateProfile} />
+        )}
+      </Suspense>
     </AppLayout>
   );
 };
